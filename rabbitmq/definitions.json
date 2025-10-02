@@ -1,0 +1,163 @@
+{
+  "rabbit_version": "3.13.7",
+  "rabbitmq_version": "3.13.7",
+  "product_name": "RabbitMQ",
+  "product_version": "3.13.7",
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "7jKg4VHLbD9IW5ftSgPDIKGbofbaseIRm35BoC+QW6C8YFbf",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": [
+        "administrator"
+      ],
+      "limits": {}
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/",
+      "description": "Default virtual host",
+      "tags": [],
+      "metadata": {
+        "description": "Default virtual host",
+        "tags": []
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "topic_permissions": [],
+  "parameters": [],
+  "global_parameters": [
+    {
+      "name": "internal_cluster_id",
+      "value": "rabbitmq-cluster-id-kB-7rsMj9WgfekHUVNGoDA"
+    }
+  ],
+  "policies": [],
+  "queues": [
+    {
+      "name": "crypto-bybit-stream",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 2000000000,
+        "x-queue-type": "stream",
+        "x-stream-max-segment-size-bytes": 100000000
+      }
+    },
+    {
+      "name": "metrics-dead-letter-queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "metrics-bybit-queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "metrics-dead-letter-queue",
+        "x-max-length": 2500,
+        "x-message-ttl": 21600000
+      }
+    },
+    {
+      "name": "crypto-scout-collector-queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 2500,
+        "x-message-ttl": 21600000
+      }
+    },
+    {
+      "name": "metrics-cmc-queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "metrics-dead-letter-queue",
+        "x-max-length": 2500,
+        "x-message-ttl": 21600000
+      }
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "metrics-exchange",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "crypto-exchange",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "collector-exchange",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "collector-exchange",
+      "vhost": "/",
+      "destination": "crypto-scout-collector-queue",
+      "destination_type": "queue",
+      "routing_key": "collector",
+      "arguments": {}
+    },
+    {
+      "source": "crypto-exchange",
+      "vhost": "/",
+      "destination": "crypto-bybit-stream",
+      "destination_type": "queue",
+      "routing_key": "crypto.bybit",
+      "arguments": {}
+    },
+    {
+      "source": "metrics-exchange",
+      "vhost": "/",
+      "destination": "metrics-bybit-queue",
+      "destination_type": "queue",
+      "routing_key": "metrics.bybit",
+      "arguments": {}
+    },
+    {
+      "source": "metrics-exchange",
+      "vhost": "/",
+      "destination": "metrics-cmc-queue",
+      "destination_type": "queue",
+      "routing_key": "metrics.cmc",
+      "arguments": {}
+    }
+  ]
+}
