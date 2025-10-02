@@ -13,7 +13,7 @@ Take the following roles:
 
 - Use the best practices and design patterns.
 - Do not hallucinate.
-- Use the latest technology stack that you know.
+- Use the latest technology stack: `rabbitmq:4.1.4-management`.
 
 ## Tasks
 
