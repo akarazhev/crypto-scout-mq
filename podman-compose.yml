@@ -2,34 +2,36 @@ version: "3.9"
 
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4.1.4-management
     container_name: crypto-scout-mq
     hostname: rabbitmq
     ports:
       - "5672:5672"   # AMQP protocol
       - "15672:15672" # Management UI
       - "5552:5552"   # Stream protocol (required for RabbitMQ streams)
+      - "15692:15692" # Prometheus metrics
     volumes:
       - "./data/rabbitmq:/var/lib/rabbitmq"
       - "./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins"
       - "./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
       - "./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json"
-    environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=admin
-      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648 -rabbit vm_memory_high_watermark 0.6
+    
+    env_file:
+      - ./secrets/rabbitmq.env
     networks:
       - crypto-scout
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
+    stop_grace_period: 1m
 
 networks:
   crypto-scout:

@@ -46,3 +46,8 @@ dev
 
 ### Data files ###
 data
+
+### Secrets ###
+secrets/
+!secrets/README.md
+!secrets/*.example
