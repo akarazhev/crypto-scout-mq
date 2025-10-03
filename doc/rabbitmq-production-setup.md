@@ -21,7 +21,7 @@ messaging and metrics requirements, and how to operate it.
 
 ## Security and credentials
 
-- Default admin and Erlang cookie are supplied via `env_file`: `./secrets/rabbitmq.env`.
+- Erlang cookie is supplied via `env_file`: `./secrets/rabbitmq.env`.
     - `RABBITMQ_ERLANG_COOKIE`
 - Users/permissions are not embedded in `definitions.json` to avoid leaking credentials and to simplify rotation.
 
@@ -63,6 +63,8 @@ stream.listeners.tcp.1 = 5552
 load_definitions = /etc/rabbitmq/definitions.json
 prometheus.tcp.port = 15692
 prometheus.tcp.ip = 0.0.0.0
+management.rates_mode = basic
+deprecated_features.permit.management_metrics_collection = true
 disk_free_limit.absolute = 2GB
 vm_memory_high_watermark.relative = 0.6
 ```
@@ -74,6 +76,21 @@ vm_memory_high_watermark.relative = 0.6
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
 - `env_file: ./secrets/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
+
+## Readiness review
+
+* __Image pinning__: `podman-compose.yml` uses `rabbitmq:4.1.4-management`.
+* __Persistence__: Volume `./data/rabbitmq:/var/lib/rabbitmq` ensures durable data.
+* __Health__: Healthcheck uses `rabbitmq-diagnostics -q ping` with `start_period: 30s`.
+* __Ulimits__: `nofile` set to `65536` to prevent FD exhaustion.
+* __Networking__: Ports `5672`, `5552`, `15672`, `15692` published and listeners confirmed in logs.
+* __Config__: `rabbitmq/rabbitmq.conf` enables Streams, Prometheus, loads definitions, pins
+  `management.rates_mode=basic`, and permits `management_metrics_collection`.
+* __Plugins__: `rabbitmq/enabled_plugins` activates Management, Prometheus, Stream, Consistent Hash.
+* __Definitions__: `rabbitmq/definitions.json` seeds vhost `/`, queues, exchanges, bindings.
+* __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
+  provided via `./secrets/rabbitmq.env`.
+* __Observability__: Prometheus endpoint on `15692`.
 
 ## Operations
 
@@ -89,19 +106,23 @@ vm_memory_high_watermark.relative = 0.6
 
 ## Log verification (2025-10-03)
 
-* __Status__: Server startup complete; 6 plugins started (`rabbitmq_prometheus`, `rabbitmq_stream`, `rabbitmq_consistent_hash_exchange`, `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
+* __Status__: Server startup complete; 6 plugins started (`rabbitmq_prometheus`, `rabbitmq_stream`,
+  `rabbitmq_consistent_hash_exchange`, `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
 * __Ports/listeners__: AMQP 5672, Streams 5552, Management 15672, Prometheus 15692 listeners started successfully.
 * __Definitions__: vhost `/`, 3 exchanges, 5 queues, and 4 bindings imported from `rabbitmq/definitions.json`.
-* __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under `/var/lib/rabbitmq/mnesia/.../stream/`.
+* __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under
+  `/var/lib/rabbitmq/mnesia/.../stream/`.
 * __Warnings observed__:
-  - `management_metrics_collection` is deprecated. Impact: future minor releases may disable Management UI metrics by default.
-  - Message store indices rebuilt from scratch (expected on first boot or clean data dir).
-  - Classic peer discovery message about empty local node list (benign for single-node setups).
+    - `management_metrics_collection` is deprecated. Impact: future minor releases may disable Management UI metrics by
+      default.
+    - Message store indices rebuilt from scratch (expected on first boot or clean data dir).
+    - Classic peer discovery message about empty local node list (benign for single-node setups).
 * __Errors__: none observed.
 
 ## Remediation implemented
 
-* __Config__: Added `deprecated_features.permit.management_metrics_collection = true` to `rabbitmq/rabbitmq.conf` to preserve Management metrics behavior across future upgrades.
+* __Config__: Added `deprecated_features.permit.management_metrics_collection = true` to `rabbitmq/rabbitmq.conf` to
+  preserve Management metrics behavior across future upgrades.
 * __No further action needed__: Listeners bound, health expected, and definitions applied without errors.
 
 ## User provisioning
