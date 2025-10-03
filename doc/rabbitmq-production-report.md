@@ -22,8 +22,6 @@ messaging and metrics requirements, and how to operate it.
 ## Security and credentials
 
 - Default admin and Erlang cookie are supplied via `env_file`: `./secrets/rabbitmq.env`.
-    - `RABBITMQ_DEFAULT_USER`
-    - `RABBITMQ_DEFAULT_PASS`
     - `RABBITMQ_ERLANG_COOKIE`
 - Users/permissions are not embedded in `definitions.json` to avoid leaking credentials and to simplify rotation.
 
@@ -75,12 +73,11 @@ vm_memory_high_watermark.relative = 0.6
 - Ports: `5672`, `5552`, `15672`, `15692`.
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
-- `env_file: ./secrets/rabbitmq.env` provides `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`, and
-  `RABBITMQ_ERLANG_COOKIE`.
+- `env_file: ./secrets/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
 
 ## Operations
 
-1) Prepare secrets (see `secrets/README.md`). Ensure `./secrets/rabbitmq.env` defines the three env vars above.
+1) Prepare secrets (see `secrets/README.md`). Ensure `./secrets/rabbitmq.env` defines the env var above.
 2) Start: `podman compose -f podman-compose.yml up -d`
 3) Verify health:
     - `podman ps` (healthy status)

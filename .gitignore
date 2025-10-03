@@ -48,6 +48,4 @@ dev
 data
 
 ### Secrets ###
-secrets/
-!secrets/README.md
-!secrets/*.example
+secrets/*.env
