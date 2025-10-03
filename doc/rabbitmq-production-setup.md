@@ -162,3 +162,38 @@ Create at least one admin user (definitions do not create users by design):
 - Metrics queues: `metrics-bybit-queue`, `metrics-cmc-queue`.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
   secrets-based credentials.
+
+## Documentation proposal and implementation (2025-10-03)
+
+* __Proposed GitHub short description__
+
+  Production-ready RabbitMQ service for the crypto-scout stack (AMQP + Streams + Prometheus), deployed via Podman
+  Compose with a pre-provisioned messaging topology.
+
+* __What was updated in `README.md`__
+
+    - Added a concise project overview and the above short description.
+    - Documented features grounded in this repo: image pinning to `rabbitmq:4.1.4-management`, enabled plugins from
+      `rabbitmq/enabled_plugins`, pre-provisioned topology from `rabbitmq/definitions.json`, Prometheus metrics on
+      `:15692/metrics`, healthcheck, raised file descriptors, persistent volume.
+    - Repository layout, prerequisites (Podman + Compose plugin), quick start with secure Erlang cookie generation, and
+      startup commands using `podman compose`.
+    - Admin user provisioning using `script/rmq_user.sh` and equivalent manual commands.
+    - Configuration highlights excerpted from `rabbitmq/rabbitmq.conf`.
+    - Ports, persistence and backups guidance, security notes (secrets handling, least-privilege users, TLS suggestion),
+      and troubleshooting.
+
+* __Grounding and sources__
+
+    - Compose file: `podman-compose.yml`
+    - Configuration: `rabbitmq/rabbitmq.conf`
+    - Plugins: `rabbitmq/enabled_plugins`
+    - Topology: `rabbitmq/definitions.json`
+    - Secrets guidance: `secrets/README.md`, `secrets/rabbitmq.env.example`
+    - User provisioning script: `script/rmq_user.sh`
+
+* __Notes__
+
+    - The README avoids embedding credentials or user creation in `definitions.json` for security and rotation.
+    - TLS enablement is recommended for production networks but is not configured in this repository (left to
+      environment-specific deployment).
