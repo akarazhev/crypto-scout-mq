@@ -87,6 +87,43 @@ vm_memory_high_watermark.relative = 0.6
     - Queues/streams/exchanges in Management UI → Queues/Exchanges tabs
     - Stream protocol open on `5552`
 
+## Log verification (2025-10-03)
+
+* __Status__: Server startup complete; 6 plugins started (`rabbitmq_prometheus`, `rabbitmq_stream`, `rabbitmq_consistent_hash_exchange`, `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
+* __Ports/listeners__: AMQP 5672, Streams 5552, Management 15672, Prometheus 15692 listeners started successfully.
+* __Definitions__: vhost `/`, 3 exchanges, 5 queues, and 4 bindings imported from `rabbitmq/definitions.json`.
+* __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under `/var/lib/rabbitmq/mnesia/.../stream/`.
+* __Warnings observed__:
+  - `management_metrics_collection` is deprecated. Impact: future minor releases may disable Management UI metrics by default.
+  - Message store indices rebuilt from scratch (expected on first boot or clean data dir).
+  - Classic peer discovery message about empty local node list (benign for single-node setups).
+* __Errors__: none observed.
+
+## Remediation implemented
+
+* __Config__: Added `deprecated_features.permit.management_metrics_collection = true` to `rabbitmq/rabbitmq.conf` to preserve Management metrics behavior across future upgrades.
+* __No further action needed__: Listeners bound, health expected, and definitions applied without errors.
+
+## User provisioning
+
+Create at least one admin user (definitions do not create users by design):
+
+- __With helper script__ `script/rmq_user.sh`:
+
+  ```bash
+  ./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
+  ```
+
+  Then log in to Management UI at http://localhost:15672/ with that user.
+
+- __Alternative__ (direct in container):
+
+  ```bash
+  podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
+  podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
+  podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+  ```
+
 ## Notes and recommendations
 
 - TLS: Consider enabling TLS for AMQP, Management, and Streams in production networks.

@@ -20,4 +20,4 @@ Take the following roles:
 - As the expert dev-opts engineer run the service as via `podman-compose` and `podman logs` to get logs.
 - Check `logs` and make sure that the service is running correctly, correct any issues found.
 - Recheck your proposal and make sure that they are correct and haven't missed any important points.
-- Write a report with your proposal and implementation into `doc/rabbitmq-production-report.md`.
+- Write a report with your proposal and implementation into `doc/rabbitmq-production-setup.md`.
