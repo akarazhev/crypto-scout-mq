@@ -37,15 +37,15 @@ messaging and metrics requirements, and how to operate it.
 
 ## Streams and queues (from `rabbitmq/definitions.json`)
 
-- Stream:
+- Streams:
     - `crypto-bybit-stream` (durable, `x-queue-type: stream`, `x-max-length-bytes=2GB`,
+      `x-stream-max-segment-size-bytes=100MB`).
+    - `metrics-bybit-stream` (durable, `x-queue-type: stream`, `x-max-length-bytes=2GB`,
+      `x-stream-max-segment-size-bytes=100MB`).
+    - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Common ingress/messaging queue:
     - `crypto-scout-collector-queue` (durable, TTL=6h, max length 2500).
-- Metrics queues:
-    - `metrics-bybit-queue` (durable, DLQ=`metrics-dead-letter-queue`, TTL=6h, max length 2500).
-    - `metrics-cmc-queue` (durable, DLQ=`metrics-dead-letter-queue`, TTL=6h, max length 2500).
-    - Dead-letter queue: `metrics-dead-letter-queue`.
 - Exchanges:
     - `crypto-exchange` (topic)
     - `collector-exchange` (topic)
@@ -53,8 +53,8 @@ messaging and metrics requirements, and how to operate it.
 - Bindings:
     - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto.bybit`.
     - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=collector`.
-    - `metrics-exchange` → `metrics-bybit-queue` with `routing_key=metrics.bybit`.
-    - `metrics-exchange` → `metrics-cmc-queue` with `routing_key=metrics.cmc`.
+    - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics.bybit`.
+    - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics.cmc`.
 
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
@@ -109,7 +109,7 @@ vm_memory_high_watermark.relative = 0.6
 * __Status__: Server startup complete; 6 plugins started (`rabbitmq_prometheus`, `rabbitmq_stream`,
   `rabbitmq_consistent_hash_exchange`, `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
 * __Ports/listeners__: AMQP 5672, Streams 5552, Management 15672, Prometheus 15692 listeners started successfully.
-* __Definitions__: vhost `/`, 3 exchanges, 5 queues, and 4 bindings imported from `rabbitmq/definitions.json`.
+* __Definitions__: vhost `/`, 3 exchanges, 4 queues, and 4 bindings imported from `rabbitmq/definitions.json`.
 * __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under
   `/var/lib/rabbitmq/mnesia/.../stream/`.
 * __Warnings observed__:
@@ -157,11 +157,59 @@ Create at least one admin user (definitions do not create users by design):
 
 ## Compliance with requirements
 
-- Stream for crypto data: `crypto-bybit-stream`.
+- Streams for crypto and metrics: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream`.
 - Common ingress/messaging queue: `crypto-scout-collector-queue`.
-- Metrics queues: `metrics-bybit-queue`, `metrics-cmc-queue`.
+- Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
   secrets-based credentials.
+
+## Metrics streams migration (2025-10-04)
+
+* __Objective__
+
+  Replace classic metrics queues with streams and remove DLQ:
+    - `metrics-bybit-queue` → `metrics-bybit-stream`
+    - `metrics-cmc-queue` → `metrics-cmc-stream`
+    - Remove `metrics-dead-letter-queue`
+
+* __Rationale__
+
+    - Streams provide append-only logs with replay, consumer offsets, and retention by size; better fit for analytics
+      and time-series processing than transient queues with TTL/DLQ.
+    - Unified approach: crypto and metrics both leverage Streams.
+
+* __Implementation__
+
+    - `rabbitmq/definitions.json`:
+        - Added streams `metrics-bybit-stream`, `metrics-cmc-stream` with `x-queue-type=stream`,
+          `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB`.
+        - Removed `metrics-dead-letter-queue`.
+        - Updated bindings from `metrics-exchange` → `metrics-bybit-stream` (routing key `metrics.bybit`) and
+          `metrics-exchange` → `metrics-cmc-stream` (routing key `metrics.cmc`).
+    - `README.md` and this document updated to reflect the new topology.
+    - No changes required to `podman-compose.yml`, `rabbitmq.conf`, or `enabled_plugins` (Streams already enabled, port
+      `5552` exposed).
+
+* __Producers and consumers__
+
+    - Producers: continue publishing to `metrics-exchange` using existing routing keys `metrics.bybit` and
+      `metrics.cmc`.
+    - Consumers: prefer Stream protocol clients to benefit from offset management and replay capabilities. Coordinate
+      consumer group names and starting offsets (e.g., from latest vs earliest) per service requirements.
+
+* __Rollout and migration__ (for pre-existing environments)
+
+    1. Create new streams and bindings (applied via updated `definitions.json`).
+    2. Cut over consumers to read from the new streams.
+    3. Optionally drain/inspect legacy `metrics-*-queue` contents.
+    4. Delete legacy metrics queues and `metrics-dead-letter-queue`.
+
+* __Verification__
+
+    - Management UI → Queues: new items display as type "stream".
+    - Publish a test message to `metrics-exchange` with `routing_key=metrics.bybit` and verify it appears in
+      `metrics-bybit-stream`.
+    - Confirm `:5552` stream listener is accepting connections.
 
 ## Documentation proposal and implementation (2025-10-03)
 

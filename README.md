@@ -9,8 +9,8 @@ with a pre-provisioned messaging topology.
 - Enabled plugins: management, prometheus, stream, consistent-hash exchange (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
     - Exchanges: `crypto-exchange`, `collector-exchange`, `metrics-exchange` (topic)
-    - Stream: `crypto-bybit-stream` (durable, `x-queue-type: stream`)
-    - Queues: `crypto-scout-collector-queue`, `metrics-bybit-queue`, `metrics-cmc-queue`, `metrics-dead-letter-queue`
+    - Streams: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable, `x-queue-type: stream`)
+    - Queues: `crypto-scout-collector-queue`
     - Bindings: `crypto.bybit`, `collector`, `metrics.bybit`, `metrics.cmc`
 - Prometheus metrics on `:15692/metrics`
 - Healthcheck, graceful shutdown, raised file descriptor limits
