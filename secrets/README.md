@@ -14,11 +14,12 @@ Quick start
    mkdir -p ./secrets
 
 2) Create the env file from example:
+   ```bash
    cp ./secrets/rabbitmq.env.example ./secrets/rabbitmq.env
    # Or generate strong values:
    COOKIE=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48)
    printf "RABBITMQ_ERLANG_COOKIE=%s\n" "$COOKIE" > ./secrets/rabbitmq.env
-
+   ```
 3) Restrict permissions (recommended on Unix/macOS):
    chmod 600 ./secrets/rabbitmq.env
 
