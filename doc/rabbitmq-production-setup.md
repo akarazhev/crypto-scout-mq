@@ -51,10 +51,10 @@ messaging and metrics requirements, and how to operate it.
     - `collector-exchange` (topic)
     - `metrics-exchange` (topic)
 - Bindings:
-    - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto.bybit`.
-    - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=collector`.
-    - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics.bybit`.
-    - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics.cmc`.
+    - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
+    - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=crypto-scout-collector`.
+    - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
+    - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
 
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
@@ -184,16 +184,16 @@ Create at least one admin user (definitions do not create users by design):
         - Added streams `metrics-bybit-stream`, `metrics-cmc-stream` with `x-queue-type=stream`,
           `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB`.
         - Removed `metrics-dead-letter-queue`.
-        - Updated bindings from `metrics-exchange` → `metrics-bybit-stream` (routing key `metrics.bybit`) and
-          `metrics-exchange` → `metrics-cmc-stream` (routing key `metrics.cmc`).
+        - Updated bindings from `metrics-exchange` → `metrics-bybit-stream` (routing key `metrics-bybit`) and
+          `metrics-exchange` → `metrics-cmc-stream` (routing key `metrics-cmc`).
     - `README.md` and this document updated to reflect the new topology.
     - No changes required to `podman-compose.yml`, `rabbitmq.conf`, or `enabled_plugins` (Streams already enabled, port
       `5552` exposed).
 
 * __Producers and consumers__
 
-    - Producers: continue publishing to `metrics-exchange` using existing routing keys `metrics.bybit` and
-      `metrics.cmc`.
+    - Producers: continue publishing to `metrics-exchange` using existing routing keys `metrics-bybit` and
+      `metrics-cmc`.
     - Consumers: prefer Stream protocol clients to benefit from offset management and replay capabilities. Coordinate
       consumer group names and starting offsets (e.g., from latest vs earliest) per service requirements.
 
@@ -207,7 +207,7 @@ Create at least one admin user (definitions do not create users by design):
 * __Verification__
 
     - Management UI → Queues: new items display as type "stream".
-    - Publish a test message to `metrics-exchange` with `routing_key=metrics.bybit` and verify it appears in
+    - Publish a test message to `metrics-exchange` with `routing_key=metrics-bybit` and verify it appears in
       `metrics-bybit-stream`.
     - Confirm `:5552` stream listener is accepting connections.
 

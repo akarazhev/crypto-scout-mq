@@ -100,7 +100,7 @@
       "vhost": "/",
       "destination": "crypto-scout-collector-queue",
       "destination_type": "queue",
-      "routing_key": "collector",
+      "routing_key": "crypto-scout-collector",
       "arguments": {}
     },
     {
@@ -108,7 +108,7 @@
       "vhost": "/",
       "destination": "crypto-bybit-stream",
       "destination_type": "queue",
-      "routing_key": "crypto.bybit",
+      "routing_key": "crypto-bybit",
       "arguments": {}
     },
     {
@@ -116,7 +116,7 @@
       "vhost": "/",
       "destination": "metrics-bybit-stream",
       "destination_type": "queue",
-      "routing_key": "metrics.bybit",
+      "routing_key": "metrics-bybit",
       "arguments": {}
     },
     {
@@ -124,7 +124,7 @@
       "vhost": "/",
       "destination": "metrics-cmc-stream",
       "destination_type": "queue",
-      "routing_key": "metrics.cmc",
+      "routing_key": "metrics-cmc",
       "arguments": {}
     }
   ]

@@ -11,7 +11,7 @@ with a pre-provisioned messaging topology.
     - Exchanges: `crypto-exchange`, `collector-exchange`, `metrics-exchange` (topic)
     - Streams: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable, `x-queue-type: stream`)
     - Queues: `crypto-scout-collector-queue`
-    - Bindings: `crypto.bybit`, `collector`, `metrics.bybit`, `metrics.cmc`
+    - Bindings: `crypto-bybit`, `crypto-scout-collector`, `metrics-bybit`, `metrics-cmc`
 - Prometheus metrics on `:15692/metrics`
 - Healthcheck, graceful shutdown, raised file descriptor limits
 - Persistent data volume
