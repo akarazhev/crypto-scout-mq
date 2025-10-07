@@ -13,7 +13,9 @@ with a pre-provisioned messaging topology.
     - Queues: `crypto-scout-collector-queue`
     - Bindings: `crypto-bybit`, `crypto-scout-collector`, `metrics-bybit`, `metrics-cmc`
 - Prometheus metrics on `:15692/metrics`
-- Healthcheck, graceful shutdown, raised file descriptor limits
+- Healthcheck
+- Graceful shutdown
+- Raised file descriptor limits
 - Persistent data volume
 
 ## Repository layout
@@ -22,6 +24,7 @@ with a pre-provisioned messaging topology.
 - `rabbitmq/` — `enabled_plugins`, `rabbitmq.conf`, `definitions.json`
 - `secrets/` — instructions and example for `rabbitmq.env` (`RABBITMQ_ERLANG_COOKIE`)
 - `script/rmq_user.sh` — helper to create/update users and permissions
+- `script/rmq_compose.sh` — production runner to manage Podman Compose (up/down/logs/status/wait)
 - `doc/` — production setup notes and guides
 
 ## Prerequisites
@@ -43,9 +46,17 @@ chmod 600 ./secrets/rabbitmq.env
 
 2) Start the broker:
 
-```bash
-podman compose -f podman-compose.yml up -d
-```
+Recommended (runner script):
+
+  ```bash
+  ./script/rmq_compose.sh up -d
+  ```
+
+Alternative (raw compose):
+
+  ```bash
+  podman compose -f podman-compose.yml up -d
+  ```
 
 3) Verify:
 
@@ -57,30 +68,74 @@ podman compose -f podman-compose.yml up -d
 
 Definitions do not include users by design. Create an administrator:
 
-```bash
-./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
-```
+  ```bash
+  ./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
+  ```
 
 Or manually in the container:
 
-```bash
-podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
-podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
-podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
-```
+  ```bash
+  podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
+  podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
+  podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+  ```
+
+## Service management (runner script)
+
+Use `script/rmq_compose.sh` to manage the service in a production-friendly way (health waits, safer defaults):
+
+- **Start detached (waits for health):**
+  ```bash
+  ./script/rmq_compose.sh up -d
+  ```
+- **Start attached (foreground):**
+  ```bash
+  ./script/rmq_compose.sh up --attach
+  ```
+- **Stop (keep volumes):**
+  ```bash
+  ./script/rmq_compose.sh down
+  ```
+- **Stop and remove volumes (destructive):**
+  ```bash
+  ./script/rmq_compose.sh down --prune
+  ```
+- **Restart and wait:**
+  ```bash
+  ./script/rmq_compose.sh restart
+  ```
+- **Logs (follow):**
+  ```bash
+  ./script/rmq_compose.sh logs -f
+  ```
+- **Status and health:**
+  ```bash
+  ./script/rmq_compose.sh status
+  ```
+- **Wait for health:**
+  ```bash
+  ./script/rmq_compose.sh wait
+  ```
+
+Options:
+
+- `-f, --file` to target a different compose file (default: `podman-compose.yml`).
+- `-c, --container` to override container name (default: `crypto-scout-mq`).
+- `--timeout` to adjust health wait (default: 120s).
+- The script ensures `./secrets/rabbitmq.env` exists before starting.
 
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
-```ini
-stream.listeners.tcp.1 = 5552
-load_definitions = /etc/rabbitmq/definitions.json
-prometheus.tcp.port = 15692
-prometheus.tcp.ip = 0.0.0.0
-management.rates_mode = basic
-deprecated_features.permit.management_metrics_collection = true
-disk_free_limit.absolute = 2GB
-vm_memory_high_watermark.relative = 0.6
-```
+  ```ini
+  stream.listeners.tcp.1 = 5552
+  load_definitions = /etc/rabbitmq/definitions.json
+  prometheus.tcp.port = 15692
+  prometheus.tcp.ip = 0.0.0.0
+  management.rates_mode = basic
+  deprecated_features.permit.management_metrics_collection = true
+  disk_free_limit.absolute = 2GB
+  vm_memory_high_watermark.relative = 0.6
+  ```
 
 ## Ports
 
