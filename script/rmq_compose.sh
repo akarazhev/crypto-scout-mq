@@ -240,10 +240,20 @@ parse_up_opts() {
 parse_down_opts() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      --) shift; break ;;
       --prune) PRUNE_VOLUMES=1; shift ;;
       -f|--file|-c|--container|--verbose) # handled globally
         shift; [[ $# -gt 0 && $1 != -* ]] && shift || true; ;;
-      *) die "Unknown option for 'down': $1" ;;
+      -h|--help) usage; exit 0 ;;
+      *)
+        # Ignore stray positional/whitespace-like args for 'down' (robust to NBSP, etc.)
+        if [[ "$1" == "-"* ]]; then
+          die "Unknown option for 'down': $1"
+        else
+          warn "Ignoring extra argument for 'down': '$1'"
+          shift
+        fi
+        ;;
     esac
   done
 }
