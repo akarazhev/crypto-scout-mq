@@ -12,6 +12,8 @@ with a pre-provisioned messaging topology.
     - Streams: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable, `x-queue-type: stream`)
     - Queues: `crypto-scout-collector-queue`
     - Bindings: `crypto-bybit`, `crypto-scout-collector`, `metrics-bybit`, `metrics-cmc`
+- Stream retention: `x-max-age=7D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
+  segment; operator policies can override queue arguments)
 - Prometheus metrics on `:15692/metrics`
 - Healthcheck
 - Graceful shutdown

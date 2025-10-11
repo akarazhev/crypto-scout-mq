@@ -38,11 +38,11 @@ messaging and metrics requirements, and how to operate it.
 ## Streams and queues (from `rabbitmq/definitions.json`)
 
 - Streams:
-    - `crypto-bybit-stream` (durable, `x-queue-type: stream`, `x-max-length-bytes=2GB`,
+    - `crypto-bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `metrics-bybit-stream` (durable, `x-queue-type: stream`, `x-max-length-bytes=2GB`,
+    - `metrics-bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-length-bytes=2GB`,
+    - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Common ingress/messaging queue:
     - `crypto-scout-collector-queue` (durable, TTL=6h, max length 2500).
@@ -55,6 +55,25 @@ messaging and metrics requirements, and how to operate it.
     - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=crypto-scout-collector`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
+
+## Stream retention policy
+
+- **Configuration**: We combine time and size-based retention on all streams:
+    - `x-max-age=7D`
+    - `x-max-length-bytes=2GB`
+    - `x-stream-max-segment-size-bytes=100MB`
+- **Semantics**:
+    - Retention is evaluated per segment. Deletions occur when a segment closes and a new one is created.
+    - With both `x-max-age` and `x-max-length-bytes` set, a segment is removed when both conditions are met (AND), and
+      at least one segment is always kept.
+    - Operator policies can override queue-declared arguments; policy takes precedence.
+- **References**:
+    - RabbitMQ Streams: Data Retention (parameters and per-segment behavior)
+      https://www.rabbitmq.com/docs/streams
+    - CloudAMQP: Streams Limits & Configurations (argument names and AND semantics)
+      https://www.cloudamqp.com/blog/rabbitmq-streams-and-replay-features-part-3-limits-and-configurations-for-streams-in-rabbitmq.html
+    - Discussion on retention evaluation timing (segment rollover requirement)
+      https://github.com/rabbitmq/rabbitmq-server/discussions/4384
 
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
