@@ -19,7 +19,7 @@ TAIL_LINES=200      # logs: default tail lines
 FOLLOW=0            # logs: do not follow by default
 VERBOSE=0
 
-SECRETS_FILE="$REPO_ROOT/secrets/rabbitmq.env"
+SECRET_FILE="$REPO_ROOT/secret/rabbitmq.env"
 
 log()    { printf "%s\n" "$*"; }
 info()   { printf "[INFO] %s\n" "$*"; }
@@ -129,13 +129,13 @@ RabbitMQ endpoints:
 EOF
 }
 
-ensure_secrets() {
-  if [[ ! -f "$SECRETS_FILE" ]]; then
+ensure_secret() {
+  if [[ ! -f "$SECRET_FILE" ]]; then
     cat 1>&2 <<EOF
-[ERROR] Missing secrets file: $SECRETS_FILE
-See '$REPO_ROOT/secrets/README.md' to create it. Example:
-  mkdir -p "$REPO_ROOT/secrets"
-  cp "$REPO_ROOT/secrets/rabbitmq.env.example" "$REPO_ROOT/secrets/rabbitmq.env"
+[ERROR] Missing secret file: $SECRET_FILE
+See '$REPO_ROOT/secret/README.md' to create it. Example:
+  mkdir -p "$REPO_ROOT/secret"
+  cp "$REPO_ROOT/secret/rabbitmq.env.example" "$REPO_ROOT/secret/rabbitmq.env"
 EOF
     exit 1
   fi
@@ -143,7 +143,7 @@ EOF
 
 cmd_up() {
   [[ $DETACH -eq 1 ]] || WAIT=0  # attached implies no wait
-  ensure_secrets
+  ensure_secret
   detect_compose
   info "Starting stack using: $COMPOSE_FILE"
   if [[ $DETACH -eq 1 ]]; then
@@ -176,7 +176,7 @@ cmd_restart() {
   info "Restarting stack..."
   compose restart || {
     warn "Restart failed or containers not created yet; trying 'up -d'"
-    ensure_secrets
+    ensure_secret
     compose up -d
   }
   if [[ $WAIT -eq 1 ]]; then

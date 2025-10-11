@@ -21,7 +21,7 @@ messaging and metrics requirements, and how to operate it.
 
 ## Security and credentials
 
-- Erlang cookie is supplied via `env_file`: `./secrets/rabbitmq.env`.
+- Erlang cookie is supplied via `env_file`: `./secret/rabbitmq.env`.
     - `RABBITMQ_ERLANG_COOKIE`
 - Users/permissions are not embedded in `definitions.json` to avoid leaking credentials and to simplify rotation.
 
@@ -75,7 +75,7 @@ vm_memory_high_watermark.relative = 0.6
 - Ports: `5672`, `5552`, `15672`, `15692`.
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
-- `env_file: ./secrets/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
+- `env_file: ./secret/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
 
 ## Readiness review
 
@@ -89,12 +89,12 @@ vm_memory_high_watermark.relative = 0.6
 * __Plugins__: `rabbitmq/enabled_plugins` activates Management, Prometheus, Stream, Consistent Hash.
 * __Definitions__: `rabbitmq/definitions.json` seeds vhost `/`, queues, exchanges, bindings.
 * __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
-  provided via `./secrets/rabbitmq.env`.
+  provided via `./secret/rabbitmq.env`.
 * __Observability__: Prometheus endpoint on `15692`.
 
 ## Operations
 
-1) Prepare secrets (see `secrets/README.md`). Ensure `./secrets/rabbitmq.env` defines the env var above.
+1) Prepare a secret (see `secret/README.md`). Ensure `./secret/rabbitmq.env` defines the env var above.
 2) Start: `podman compose -f podman-compose.yml up -d`
 3) Verify health:
     - `podman ps` (healthy status)
@@ -161,7 +161,7 @@ Create at least one admin user (definitions do not create users by design):
 - Common ingress/messaging queue: `crypto-scout-collector-queue`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
-  secrets-based credentials.
+  secret-based credentials.
 
 ## Metrics streams migration (2025-10-04)
 
@@ -228,7 +228,7 @@ Create at least one admin user (definitions do not create users by design):
       startup commands using `podman compose`.
     - Admin user provisioning using `script/rmq_user.sh` and equivalent manual commands.
     - Configuration highlights excerpted from `rabbitmq/rabbitmq.conf`.
-    - Ports, persistence and backups guidance, security notes (secrets handling, least-privilege users, TLS suggestion),
+    - Ports, persistence and backups guidance, security notes (secret handling, least-privilege users, TLS suggestion),
       and troubleshooting.
 
 * __Grounding and sources__
@@ -237,7 +237,7 @@ Create at least one admin user (definitions do not create users by design):
     - Configuration: `rabbitmq/rabbitmq.conf`
     - Plugins: `rabbitmq/enabled_plugins`
     - Topology: `rabbitmq/definitions.json`
-    - Secrets guidance: `secrets/README.md`, `secrets/rabbitmq.env.example`
+    - Secret guidance: `secret/README.md`, `secret/rabbitmq.env.example`
     - User provisioning script: `script/rmq_user.sh`
 
 * __Notes__

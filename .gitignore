@@ -47,5 +47,5 @@ dev
 ### Data files ###
 data
 
-### Secrets ###
-secrets/*.env
+### Secret ###
+secret/*.env

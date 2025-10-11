@@ -22,7 +22,7 @@ with a pre-provisioned messaging topology.
 
 - `podman-compose.yml` — container definition (ports, volumes, healthcheck, ulimits)
 - `rabbitmq/` — `enabled_plugins`, `rabbitmq.conf`, `definitions.json`
-- `secrets/` — instructions and example for `rabbitmq.env` (`RABBITMQ_ERLANG_COOKIE`)
+- `secret/` — instructions and example for `rabbitmq.env` (`RABBITMQ_ERLANG_COOKIE`)
 - `script/rmq_user.sh` — helper to create/update users and permissions
 - `script/rmq_compose.sh` — production runner to manage Podman Compose (up/down/logs/status/wait)
 - `doc/` — production setup notes and guides
@@ -30,18 +30,18 @@ with a pre-provisioned messaging topology.
 ## Prerequisites
 
 - Podman and Podman Compose plugin
-- macOS/Linux shell with `openssl` (optional, for generating secrets)
+- macOS/Linux shell with `openssl` (optional, for generating secret)
 
 ## Quick start
 
-1) Prepare secrets (see `secrets/README.md`). Example to generate a strong Erlang cookie:
+1) Prepare secret (see `secret/README.md`). Example to generate a strong Erlang cookie:
 
 ```bash
-mkdir -p ./secrets
-cp ./secrets/rabbitmq.env.example ./secrets/rabbitmq.env
+mkdir -p ./secret
+cp ./secret/rabbitmq.env.example ./secret/rabbitmq.env
 COOKIE=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48)
-printf "RABBITMQ_ERLANG_COOKIE=%s\n" "$COOKIE" > ./secrets/rabbitmq.env
-chmod 600 ./secrets/rabbitmq.env
+printf "RABBITMQ_ERLANG_COOKIE=%s\n" "$COOKIE" > ./secret/rabbitmq.env
+chmod 600 ./secret/rabbitmq.env
 ```
 
 2) Start the broker:
@@ -122,7 +122,7 @@ Options:
 - `-f, --file` to target a different compose file (default: `podman-compose.yml`).
 - `-c, --container` to override container name (default: `crypto-scout-mq`).
 - `--timeout` to adjust health wait (default: 120s).
-- The script ensures `./secrets/rabbitmq.env` exists before starting.
+- The script ensures `./secret/rabbitmq.env` exists before starting.
 
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
@@ -151,7 +151,7 @@ Options:
 
 ## Security notes
 
-- Keep `./secrets/rabbitmq.env` out of version control; rotate the Erlang cookie per environment.
+- Keep `./secret/rabbitmq.env` out of version control; rotate the Erlang cookie per environment.
 - Create per-service users with least-privilege permissions.
 - Consider enabling TLS for AMQP, Streams, and Management in production networks.
 
