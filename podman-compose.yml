@@ -4,7 +4,7 @@ services:
   crypto-scout-mq:
     image: rabbitmq:4.1.4-management
     container_name: crypto-scout-mq
-    hostname: rabbitmq
+    hostname: crypto-scout-mq
     ports:
       - "5672:5672"   # AMQP protocol
       - "15672:15672" # Management UI
@@ -19,7 +19,7 @@ services:
     env_file:
       - ./secret/rabbitmq.env
     networks:
-      - crypto-scout
+      - crypto-scout-bridge
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 10s
@@ -34,5 +34,6 @@ services:
     stop_grace_period: 1m
 
 networks:
-  crypto-scout:
-    driver: bridge
+  crypto-scout-bridge:
+    name: crypto-scout-bridge
+    external: true
