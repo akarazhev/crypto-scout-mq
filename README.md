@@ -50,15 +50,15 @@ chmod 600 ./secret/rabbitmq.env
 
 Recommended (runner script):
 
-  ```bash
-  ./script/rmq_compose.sh up -d
-  ```
+```bash
+./script/rmq_compose.sh up -d
+```
 
 Alternative (raw compose):
 
-  ```bash
-  podman compose -f podman-compose.yml up -d
-  ```
+```bash
+podman compose -f podman-compose.yml up -d
+```
 
 3) Verify:
 
@@ -70,17 +70,17 @@ Alternative (raw compose):
 
 Definitions do not include users by design. Create an administrator:
 
-  ```bash
-  ./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
-  ```
+```bash
+./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
+```
 
 Or manually in the container:
 
-  ```bash
-  podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
-  podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
-  podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
-  ```
+```bash
+podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
+podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
+podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+```
 
 ## Service management (runner script)
 
@@ -128,16 +128,19 @@ Options:
 
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
-  ```ini
-  stream.listeners.tcp.1 = 5552
-  load_definitions = /etc/rabbitmq/definitions.json
-  prometheus.tcp.port = 15692
-  prometheus.tcp.ip = 0.0.0.0
-  management.rates_mode = basic
-  deprecated_features.permit.management_metrics_collection = true
-  disk_free_limit.absolute = 2GB
-  vm_memory_high_watermark.relative = 0.6
-  ```
+```ini
+stream.listeners.tcp.1 = 0.0.0.0:5552
+stream.advertised_host = crypto_scout_mq
+stream.advertised_port = 5552
+load_definitions = /etc/rabbitmq/definitions.json
+prometheus.tcp.port = 15692
+prometheus.tcp.ip = 0.0.0.0
+management.tcp.ip = 0.0.0.0
+management.rates_mode = basic
+deprecated_features.permit.management_metrics_collection = true
+disk_free_limit.absolute = 2GB
+vm_memory_high_watermark.relative = 0.6
+```
 
 ## Ports
 
@@ -145,6 +148,28 @@ Options:
 - 5552: Streams
 - 15672: Management UI
 - 15692: Prometheus metrics
+
+## External access (Streams advertised host/port)
+
+By default, the Streams advertised address is set for inter-container connectivity on the Podman network:
+
+- Host: `crypto_scout_mq`
+- Port: `5552`
+
+For clients outside the host (public access or across NAT), edit `rabbitmq/rabbitmq.conf` and set:
+
+```ini
+stream.advertised_host = <public-dns-or-ip>
+stream.advertised_port = <public-port>
+```
+
+Then restart the service. Ensure your firewall/NAT exposes the Streams port (default `5552`).
+
+Verification:
+
+- Management UI: http://<public-host>:15672/
+- Metrics:      http://<public-host>:15692/metrics
+- Streams:      connect a Streams client to `<public-host>:<port>` and confirm it does not redirect to `localhost`.
 
 ## Persistence and backups
 

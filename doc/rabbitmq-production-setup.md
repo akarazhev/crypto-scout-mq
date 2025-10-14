@@ -19,6 +19,26 @@ messaging and metrics requirements, and how to operate it.
 - 15672: Management UI
 - 15692: Prometheus metrics (`/metrics`)
 
+## External access (Streams advertised host/port)
+
+When clients connect from outside the host or across NAT, the Streams protocol requires a routable advertised address.
+
+- Default advertised address (for inter-container connectivity on the Podman network):
+  - Host: `crypto_scout_mq`
+  - Port: `5552`
+- For public/external clients, edit `rabbitmq/rabbitmq.conf` and set:
+  ```ini
+  stream.advertised_host = <public-dns-or-ip>
+  stream.advertised_port = <public-port>
+  ```
+  Then restart the service and ensure your firewall/NAT exposes the Streams port (default `5552`).
+
+Verification checklist:
+
+- Management UI: `http://<public-host>:15672/`
+- Metrics: `http://<public-host>:15692/metrics`
+- Streams client can connect to `<public-host>:<port>` and does not get redirected to `localhost`.
+
 ## Security and credentials
 
 - Erlang cookie is supplied via `env_file`: `./secret/rabbitmq.env`.
@@ -78,10 +98,13 @@ messaging and metrics requirements, and how to operate it.
 ## Configuration highlights (`rabbitmq/rabbitmq.conf`)
 
 ```
-stream.listeners.tcp.1 = 5552
+stream.listeners.tcp.1 = 0.0.0.0:5552
+stream.advertised_host = crypto_scout_mq
+stream.advertised_port = 5552
 load_definitions = /etc/rabbitmq/definitions.json
 prometheus.tcp.port = 15692
 prometheus.tcp.ip = 0.0.0.0
+management.tcp.ip = 0.0.0.0
 management.rates_mode = basic
 deprecated_features.permit.management_metrics_collection = true
 disk_free_limit.absolute = 2GB
