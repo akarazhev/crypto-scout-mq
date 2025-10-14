@@ -19,10 +19,10 @@ Take the following roles:
 - As the expert dev-opts engineer review the current `definitions.json` config implementation in `crypto-scout-mq`
   project and
   update it by defining the `x-max-age` parameter. Define the retention policy for streams.
-- As the expert database engineer recheck your proposal and make sure that they are correct and haven't missed any
+- As the expert dev-opts engineer recheck your proposal and make sure that they are correct and haven't missed any
   important points.
 - As the technical writer update the `README.md` and `rabbitmq-production-setup.md` files with your results.
-- As the technical writer update the `issue-6-define-retention-policy-for-streams.md` file with your resolution.
+- As the technical writer update the `6-define-retention-policy-for-streams.md` file with your resolution.
 
 ---
 
