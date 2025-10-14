@@ -1,4 +1,4 @@
-# Context: Logs checks of the running `rabbitmq` container as the production ready service
+# Issue 2: Logs checks of the running `rabbitmq` container as the production ready service
 
 In this `crypto-scout-mq` project we have configured the `rabbitmq` server in a container for messaging between
 services and to collect crypto data. So you will need to check logs and make sure that the service is running correctly.

@@ -1,6 +1,4 @@
-# Context: Replacement of `metrics-bybit-queue` and `metrics-cmc-queue` with `metrics-bybit-stream` and
-
-`metrics-cmc-stream`
+# Issue 5: Replacement of `metrics-bybit-queue` and `metrics-cmc-queue` with `metrics-bybit-stream` and `metrics-cmc-stream`
 
 In this `crypto-scout-mq` project we are going to replace `metrics-bybit-queue` and `metrics-cmc-queue` with
 `metrics-bybit-stream` and `metrics-cmc-stream`. So you will need to review and update the project with docs to reflect

@@ -1,4 +1,4 @@
-# Context: Development of the `rabbitmq` production ready service
+# Issue 1: Development of the `rabbitmq` production ready service
 
 In this `crypto-scout-mq` project we are going to use the `rabbitmq` server in a container for messaging between
 services and to collect crypto data. So you will need to review and update the `podman-compose.yml` file for the

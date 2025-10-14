@@ -1,4 +1,4 @@
-# Context: Solution review of the `rabbitmq` production ready service
+# Issue 3: Solution review of the `rabbitmq` production ready service
 
 In this `crypto-scout-mq` project the `rabbitmq` server has been configured in a container for messaging between
 services and to collect crypto data. So you will need to review and update the configuration to be sure that it is ready

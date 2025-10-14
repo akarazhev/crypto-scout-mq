@@ -1,4 +1,4 @@
-# Context: Document writing of the `rabbitmq` production ready service
+# Issue 4: Document writing of the `rabbitmq` production ready service
 
 In this `crypto-scout-mq` project the `rabbitmq` server has been configured in a container for messaging between
 services and to collect crypto data. So you will need to write professional documentation of the `crypto-scout-mq`
