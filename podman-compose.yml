@@ -4,7 +4,7 @@ services:
   crypto-scout-mq:
     image: rabbitmq:4.1.4-management
     container_name: crypto-scout-mq
-    hostname: crypto-scout-mq
+    hostname: crypto_scout_mq
     ports:
       - "5672:5672"   # AMQP protocol
       - "15672:15672" # Management UI
