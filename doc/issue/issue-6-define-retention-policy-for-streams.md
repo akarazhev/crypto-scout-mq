@@ -1,4 +1,4 @@
-# Issue 1: Define retention policy for streams
+# Issue 6: Define retention policy for streams
 
 In this `crypto-scout-mq` project we are going to define a new `x-max-age` parameter to manage retention policy.
 
@@ -22,7 +22,7 @@ Take the following roles:
 - As the expert database engineer recheck your proposal and make sure that they are correct and haven't missed any
   important points.
 - As the technical writer update the `README.md` and `rabbitmq-production-setup.md` files with your results.
-- As the technical writer update the `issue-1-define-retention-policy-for-streams.md` file with your resolution.
+- As the technical writer update the `issue-6-define-retention-policy-for-streams.md` file with your resolution.
 
 ---
 
