@@ -78,7 +78,7 @@ networks:
 
 - **[Compose hardening]** Updated `podman-compose.yml` to:
     - Mount `rabbitmq/enabled_plugins`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json` as read-only.
-    - Add `security_opt: [no-new-privileges=true]`, `cap_drop: [ALL]`, `init: true`, `pids_limit: 1024`,
+    - Add `security_opt: [no-new-privileges=true]`, `init: true`, `pids_limit: 1024`,
       `stop_signal: SIGTERM`, `tmpfs: /tmp`.
     - Keep data volume `./data/rabbitmq:/var/lib/rabbitmq` and published ports `5672`, `5552`, `15672`, `15692`
       unchanged.
@@ -99,8 +99,8 @@ networks:
 
 ### Recheck
 
-- **Security**: Config mounts are read-only; container drops capabilities; `no-new-privileges`; PID limit; tmpfs for
-  `/tmp`. Delete the default `guest` user after provisioning.
+- **Security**: Config mounts are read-only; `no-new-privileges`; PID limit; tmpfs for `/tmp`. Delete the default `guest`
+  user after provisioning.
 - **Reliability**: Disk and memory watermarks configured; healthcheck present; graceful shutdown.
 - **Streams**: Streams listener and advertised address configured; retention consistent via policy; stream port `5552`
   exposed.

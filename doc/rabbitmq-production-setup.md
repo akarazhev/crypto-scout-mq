@@ -128,7 +128,7 @@ vm_memory_high_watermark.relative = 0.6
 - Volumes for data, config, plugin list, and definitions.
 - `env_file: ./secret/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
  - Config mounts are read-only: `enabled_plugins`, `rabbitmq.conf`, `definitions.json`.
- - Security hardening: drop all capabilities, `no-new-privileges`, `init`, `pids_limit: 1024`, tmpfs for `/tmp`,
+ - Security hardening: `no-new-privileges`, `init`, `pids_limit: 1024`, tmpfs for `/tmp`,
    graceful `SIGTERM` and `stop_grace_period: 1m`.
 
 ## Readiness review
@@ -145,7 +145,7 @@ vm_memory_high_watermark.relative = 0.6
 * __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
   provided via `./secret/rabbitmq.env`.
 * __Observability__: Prometheus endpoint on `15692`.
-* __Security hardening__: Compose mounts are read-only, capabilities dropped, `no-new-privileges`, PID limit, tmpfs `/tmp`.
+* __Security hardening__: Compose mounts are read-only, `no-new-privileges`, PID limit, tmpfs `/tmp`.
 * __Backpressure__: Collector queue uses lazy mode and `reject-publish` overflow to protect the broker under load.
 
 ## Operations

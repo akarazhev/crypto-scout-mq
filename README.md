@@ -20,7 +20,7 @@ with a pre-provisioned messaging topology.
 - Raised file descriptor limits
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
-  drop all capabilities, `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
+  `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
 - Collector queue hardened: lazy mode and `reject-publish` overflow for `crypto-scout-collector-queue`
 - Stream retention enforced via policy `stream-retention` for `.*-stream$` queues
 
