@@ -15,9 +15,10 @@ services:
       - "./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins"
       - "./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
       - "./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json"
-    
     env_file:
       - ./secret/rabbitmq.env
+    environment:
+      TZ: UTC
     networks:
       - crypto-scout-bridge
     healthcheck:
