@@ -65,7 +65,7 @@ Verification checklist:
     - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Common ingress/messaging queue:
-    - `crypto-scout-collector-queue` (durable, TTL=6h, max length 2500).
+    - `crypto-scout-collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
     - `crypto-exchange` (topic)
     - `collector-exchange` (topic)
@@ -75,6 +75,15 @@ Verification checklist:
     - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=crypto-scout-collector`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
+
+## Policies
+
+- Stream retention policy `stream-retention` applied to queues matching `.*-stream$`:
+  - `queue-type=stream`
+  - `max-length-bytes=2GB`
+  - `max-age=7D`
+  - `stream-max-segment-size-bytes=100MB`
+  This enforces consistent retention for current and future streams, overriding queue-declared arguments when present.
 
 ## Stream retention policy
 
@@ -118,6 +127,9 @@ vm_memory_high_watermark.relative = 0.6
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
 - `env_file: ./secret/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
+ - Config mounts are read-only: `enabled_plugins`, `rabbitmq.conf`, `definitions.json`.
+ - Security hardening: drop all capabilities, `no-new-privileges`, `init`, `pids_limit: 1024`, tmpfs for `/tmp`,
+   graceful `SIGTERM` and `stop_grace_period: 1m`.
 
 ## Readiness review
 
@@ -133,6 +145,8 @@ vm_memory_high_watermark.relative = 0.6
 * __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
   provided via `./secret/rabbitmq.env`.
 * __Observability__: Prometheus endpoint on `15692`.
+* __Security hardening__: Compose mounts are read-only, capabilities dropped, `no-new-privileges`, PID limit, tmpfs `/tmp`.
+* __Backpressure__: Collector queue uses lazy mode and `reject-publish` overflow to protect the broker under load.
 
 ## Operations
 
@@ -185,6 +199,11 @@ Create at least one admin user (definitions do not create users by design):
   podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
   podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
   podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+  ```
+  
+- Delete the default 'guest' user:
+  ```bash
+  podman exec -it crypto-scout-mq rabbitmqctl delete_user guest
   ```
 
 ## Notes and recommendations

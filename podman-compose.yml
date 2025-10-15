@@ -12,9 +12,9 @@ services:
       - "15692:15692" # Prometheus metrics
     volumes:
       - "./data/rabbitmq:/var/lib/rabbitmq"
-      - "./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins"
-      - "./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
-      - "./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json"
+      - "./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro"
+      - "./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro"
+      - "./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro"
     env_file:
       - ./secret/rabbitmq.env
     environment:
@@ -28,6 +28,15 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges=true
+    cap_drop:
+      - ALL
+    init: true
+    pids_limit: 1024
+    stop_signal: SIGTERM
+    tmpfs:
+      - /tmp:rw,size=64m,mode=1777,nodev,nosuid
     ulimits:
       nofile:
         soft: 65536

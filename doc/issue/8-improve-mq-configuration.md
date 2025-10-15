@@ -21,7 +21,6 @@ Take the following roles:
 - and `podman-compose.yml` file in `crypto-scout-mq` project then verify and improve it to be sure that it is production
   ready to manage a lot of the data. Take the `podman-compose.yml` file as a sample defined below.
 - As the expert dev-opts engineer recheck your proposal and make sure that they are correct and haven't missed any
-  important points.
 - As the technical writer update the `README.md` and `rabbitmq-production-setup.md` files with your results.
 - As the technical writer update the `8-improve-mq-connection.md` file with your resolution.
 
@@ -74,3 +73,46 @@ networks:
     name: crypto-scout-bridge
     external: true
 ```
+
+## Resolution
+
+- **[Compose hardening]** Updated `podman-compose.yml` to:
+    - Mount `rabbitmq/enabled_plugins`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json` as read-only.
+    - Add `security_opt: [no-new-privileges=true]`, `cap_drop: [ALL]`, `init: true`, `pids_limit: 1024`,
+      `stop_signal: SIGTERM`, `tmpfs: /tmp`.
+    - Keep data volume `./data/rabbitmq:/var/lib/rabbitmq` and published ports `5672`, `5552`, `15672`, `15692`
+      unchanged.
+
+- **[Topology improvements]** Updated `rabbitmq/definitions.json`:
+    - Added policy `stream-retention` for queues matching `.*-stream$` to enforce retention: `max-length-bytes=2GB`,
+      `max-age=7D`, `stream-max-segment-size-bytes=100MB`.
+    - Ensured `metrics-bybit-stream` and `metrics-cmc-stream` explicitly declare `x-queue-type=stream` with the same
+      retention arguments.
+    - Hardened `crypto-scout-collector-queue` with `x-queue-mode=lazy` and `x-overflow=reject-publish`.
+
+- **[Config validation]** `rabbitmq/rabbitmq.conf` already production-safe (Streams listener and advertised host/port;
+  Prometheus and Management listeners; disk/memory watermarks).
+
+- **[Docs updated]**
+    - `README.md`: Features list documents hardening, collector queue, and retention policy.
+    - `doc/rabbitmq-production-setup.md`: Added compose hardening, Policies section, and readiness/backpressure notes.
+
+### Recheck
+
+- **Security**: Config mounts are read-only; container drops capabilities; `no-new-privileges`; PID limit; tmpfs for
+  `/tmp`. Delete the default `guest` user after provisioning.
+- **Reliability**: Disk and memory watermarks configured; healthcheck present; graceful shutdown.
+- **Streams**: Streams listener and advertised address configured; retention consistent via policy; stream port `5552`
+  exposed.
+- **Backpressure**: Collector queue uses lazy mode and rejects publish on overflow.
+- **Observability**: Prometheus `:15692`; Management `:15672`.
+
+### Next steps
+
+- Create admin users and delete the default `guest` user:
+  ```bash
+  ./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
+  podman exec -it crypto-scout-mq rabbitmqctl delete_user guest
+  ```
+- If exposing to public networks, configure TLS for AMQP/Streams/Management and set external
+  `stream.advertised_host/port`.

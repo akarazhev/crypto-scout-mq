@@ -19,7 +19,20 @@
   "topic_permissions": [],
   "parameters": [],
   "global_parameters": [],
-  "policies": [],
+  "policies": [
+    {
+      "vhost": "/",
+      "name": "stream-retention",
+      "pattern": ".*-stream$",
+      "definition": {
+        "max-length-bytes": 2000000000,
+        "max-age": "7D",
+        "stream-max-segment-size-bytes": 100000000
+      },
+      "priority": 0,
+      "apply-to": "queues"
+    }
+  ],
   "queues": [
     {
       "name": "crypto-bybit-stream",
@@ -52,7 +65,9 @@
       "auto_delete": false,
       "arguments": {
         "x-max-length": 2500,
-        "x-message-ttl": 21600000
+        "x-message-ttl": 21600000,
+        "x-queue-mode": "lazy",
+        "x-overflow": "reject-publish"
       }
     },
     {

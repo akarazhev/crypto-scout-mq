@@ -19,6 +19,10 @@ with a pre-provisioned messaging topology.
 - Graceful shutdown
 - Raised file descriptor limits
 - Persistent data volume
+- Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
+  drop all capabilities, `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
+- Collector queue hardened: lazy mode and `reject-publish` overflow for `crypto-scout-collector-queue`
+- Stream retention enforced via policy `stream-retention` for `.*-stream$` queues
 
 ## Repository layout
 
@@ -80,6 +84,7 @@ Or manually in the container:
 podman exec -it crypto-scout-mq rabbitmqctl add_user admin 'changeMeStrong!'
 podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
 podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+podman exec -it crypto-scout-mq rabbitmqctl delete_user guest
 ```
 
 ## Service management (runner script)
