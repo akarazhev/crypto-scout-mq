@@ -83,7 +83,7 @@
       }
     },
     {
-      "name": "crypto-scout-chatbot-queue",
+      "name": "chatbot-queue",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -148,7 +148,7 @@
     {
       "source": "collector-exchange",
       "vhost": "/",
-      "destination": "crypto-scout-chatbot-queue",
+      "destination": "chatbot-queue",
       "destination_type": "queue",
       "routing_key": "crypto-scout-chatbot",
       "arguments": {}

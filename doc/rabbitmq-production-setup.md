@@ -68,7 +68,7 @@ Verification checklist:
       `x-stream-max-segment-size-bytes=100MB`).
 - Classic queues:
     - `collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
-    - `crypto-scout-chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
+    - `chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
     - `crypto-exchange` (topic)
     - `collector-exchange` (topic)
@@ -77,7 +77,7 @@ Verification checklist:
     - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
     - `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
     - `collector-exchange` → `collector-queue` with `routing_key=crypto-scout-collector`.
-    - `collector-exchange` → `crypto-scout-chatbot-queue` with `routing_key=crypto-scout-chatbot`.
+    - `collector-exchange` → `chatbot-queue` with `routing_key=crypto-scout-chatbot`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
 
@@ -227,9 +227,9 @@ Create at least one admin user (definitions do not create users by design):
 
 - Streams for crypto and metrics: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`,
   `metrics-cmc-stream`.
-- Classic queues: `collector-queue`, `crypto-scout-chatbot-queue`.
+- Classic queues: `collector-queue`, `chatbot-queue`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
-- New binding: `collector-exchange` → `crypto-scout-chatbot-queue` with `routing_key=crypto-scout-chatbot`.
+- New binding: `collector-exchange` → `chatbot-queue` with `routing_key=crypto-scout-chatbot`.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
   secret-based credentials.
 
@@ -364,7 +364,7 @@ Create at least one admin user (definitions do not create users by design):
 
 * __Objective__
 
-  Introduce a new classic queue `crypto-scout-chatbot-queue` based on `collector-queue` to deliver
+  Introduce a new classic queue `chatbot-queue` based on `collector-queue` to deliver
   analyzed crypto data to a chatbot processor.
 
 * __Rationale__
@@ -376,21 +376,21 @@ Create at least one admin user (definitions do not create users by design):
 * __Implementation__
 
     - `rabbitmq/definitions.json`:
-        - Added queue `crypto-scout-chatbot-queue` (durable, `x-message-ttl=21600000` (6h), `x-max-length=2500`,
+        - Added queue `chatbot-queue` (durable, `x-message-ttl=21600000` (6h), `x-max-length=2500`,
           `x-queue-mode=lazy`, `x-overflow=reject-publish`).
-        - Added binding from `collector-exchange` → `crypto-scout-chatbot-queue` with
+        - Added binding from `collector-exchange` → `chatbot-queue` with
           `routing_key=crypto-scout-chatbot`.
     - No changes required to `podman-compose.yml` or `rabbitmq/rabbitmq.conf`.
 
 * __Producers and consumers__
 
     - Producers: publish analyzed messages to `collector-exchange` with routing key `crypto-scout-chatbot`.
-    - Consumers: consume from `crypto-scout-chatbot-queue` over AMQP; set an appropriate `prefetch` and ack explicitly.
+    - Consumers: consume from `chatbot-queue` over AMQP; set an appropriate `prefetch` and ack explicitly.
 
 * __Verification__
 
     1. Management UI → Exchanges → `collector-exchange` → Publish message with routing key `crypto-scout-chatbot`;
-       confirm it appears in `crypto-scout-chatbot-queue`.
+       confirm it appears in `chatbot-queue`.
     2. Ensure queue properties show TTL=6h, max length 2500, mode "lazy".
 
 * __Rollout__
