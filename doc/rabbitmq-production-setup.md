@@ -71,13 +71,13 @@ Verification checklist:
     - `chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
     - `crypto-exchange` (topic)
-    - `collector-exchange` (topic)
+    - `crypto-scout-exchange` (topic)
     - `metrics-exchange` (topic)
 - Bindings:
     - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
     - `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
-    - `collector-exchange` → `collector-queue` with `routing_key=collector`.
-    - `collector-exchange` → `chatbot-queue` with `routing_key=chatbot`.
+    - `crypto-scout-exchange` → `collector-queue` with `routing_key=collector`.
+    - `crypto-scout-exchange` → `chatbot-queue` with `routing_key=chatbot`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
 
@@ -229,7 +229,7 @@ Create at least one admin user (definitions do not create users by design):
   `metrics-cmc-stream`.
 - Classic queues: `collector-queue`, `chatbot-queue`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
-- New binding: `collector-exchange` → `chatbot-queue` with `routing_key=chatbot`.
+- New binding: `crypto-scout-exchange` → `chatbot-queue` with `routing_key=chatbot`.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
   secret-based credentials.
 
@@ -376,20 +376,19 @@ Create at least one admin user (definitions do not create users by design):
 * __Implementation__
 
     - `rabbitmq/definitions.json`:
-        - Added queue `chatbot-queue` (durable, `x-message-ttl=21600000` (6h), `x-max-length=2500`,
-          `x-queue-mode=lazy`, `x-overflow=reject-publish`).
-        - Added binding from `collector-exchange` → `chatbot-queue` with
-          `routing_key=chatbot`.
+        - Added queue `chatbot-queue` (durable, `x-message-ttl=21600000` (6h), `x-max-length=2500`, `x-queue-mode=lazy`,
+          `x-overflow=reject-publish`).
+        - Added binding from `crypto-scout-exchange` → `chatbot-queue` with `routing_key=chatbot`.
     - No changes required to `podman-compose.yml` or `rabbitmq/rabbitmq.conf`.
 
 * __Producers and consumers__
 
-    - Producers: publish analyzed messages to `collector-exchange` with routing key `chatbot`.
+    - Producers: publish analyzed messages to `crypto-scout-exchange` with routing key `chatbot`.
     - Consumers: consume from `chatbot-queue` over AMQP; set an appropriate `prefetch` and ack explicitly.
 
 * __Verification__
 
-    1. Management UI → Exchanges → `collector-exchange` → Publish message with routing key `chatbot`;
+    1. Management UI → Exchanges → `crypto-scout-exchange` → Publish message with routing key `chatbot`;
        confirm it appears in `chatbot-queue`.
     2. Ensure queue properties show TTL=6h, max length 2500, mode "lazy".
 

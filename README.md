@@ -8,7 +8,7 @@ with a pre-provisioned messaging topology.
 - RabbitMQ 4.1.4-management image
 - Enabled plugins: management, prometheus, stream, consistent-hash exchange (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
-    - Exchanges: `crypto-exchange`, `collector-exchange`, `metrics-exchange` (topic)
+    - Exchanges: `crypto-exchange`, `crypto-scout-exchange`, `metrics-exchange` (topic)
     - Streams: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable,
       `x-queue-type: stream`)
     - Queues: `collector-queue`, `chatbot-queue`
