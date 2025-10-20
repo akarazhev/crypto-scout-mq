@@ -142,7 +142,7 @@
       "vhost": "/",
       "destination": "collector-queue",
       "destination_type": "queue",
-      "routing_key": "crypto-scout-collector",
+      "routing_key": "collector",
       "arguments": {}
     },
     {
