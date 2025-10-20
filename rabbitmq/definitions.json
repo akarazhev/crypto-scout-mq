@@ -150,7 +150,7 @@
       "vhost": "/",
       "destination": "chatbot-queue",
       "destination_type": "queue",
-      "routing_key": "crypto-scout-chatbot",
+      "routing_key": "chatbot",
       "arguments": {}
     },
     {
