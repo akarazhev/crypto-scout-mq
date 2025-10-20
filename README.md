@@ -11,7 +11,7 @@ with a pre-provisioned messaging topology.
     - Exchanges: `crypto-exchange`, `collector-exchange`, `metrics-exchange` (topic)
     - Streams: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable,
       `x-queue-type: stream`)
-    - Queues: `crypto-scout-collector-queue`, `crypto-scout-chatbot-queue`
+    - Queues: `collector-queue`, `crypto-scout-chatbot-queue`
     - Bindings: `crypto-bybit`, `crypto-bybit-ta`, `crypto-scout-collector`, `crypto-scout-chatbot`, `metrics-bybit`,
       `metrics-cmc`
 - Stream retention: `x-max-age=7D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
@@ -22,7 +22,7 @@ with a pre-provisioned messaging topology.
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
   `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
-- Collector and chatbot queues hardened: lazy mode and `reject-publish` overflow for `crypto-scout-collector-queue` and
+- Collector and chatbot queues hardened: lazy mode and `reject-publish` overflow for `collector-queue` and
   `crypto-scout-chatbot-queue`
 - Stream retention enforced via policy `stream-retention` for `.*-stream$` queues
 

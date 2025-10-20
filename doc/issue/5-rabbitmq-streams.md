@@ -23,7 +23,7 @@ Take the following roles:
   `metrics-bybit-queue` and `metrics-cmc-queue` with `metrics-bybit-stream` and `metrics-cmc-stream`.
 - Use streams for: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream`.
 - Delete `metrics-dead-letter-queue`.
-- Use a common queue for incoming events and for messaging between services: `crypto-scout-collector-queue`.
+- Use a common queue for incoming events and for messaging between services: `collector-queue`.
 - Recheck your proposal and make sure that they are correct and haven't missed any important points.
 - As the expert dev-opts engineer write a report with your proposal and implementation into
   `doc/rabbitmq-production-setup.md`.

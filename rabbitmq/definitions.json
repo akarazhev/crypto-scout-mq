@@ -71,7 +71,7 @@
       }
     },
     {
-      "name": "crypto-scout-collector-queue",
+      "name": "collector-queue",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -140,7 +140,7 @@
     {
       "source": "collector-exchange",
       "vhost": "/",
-      "destination": "crypto-scout-collector-queue",
+      "destination": "collector-queue",
       "destination_type": "queue",
       "routing_key": "crypto-scout-collector",
       "arguments": {}

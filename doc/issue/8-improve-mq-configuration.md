@@ -88,7 +88,7 @@ networks:
       `max-age=7D`, `stream-max-segment-size-bytes=100MB`.
     - Ensured `metrics-bybit-stream` and `metrics-cmc-stream` explicitly declare `x-queue-type=stream` with the same
       retention arguments.
-    - Hardened `crypto-scout-collector-queue` with `x-queue-mode=lazy` and `x-overflow=reject-publish`.
+    - Hardened `collector-queue` with `x-queue-mode=lazy` and `x-overflow=reject-publish`.
 
 - **[Config validation]** `rabbitmq/rabbitmq.conf` already production-safe (Streams listener and advertised host/port;
   Prometheus and Management listeners; disk/memory watermarks).

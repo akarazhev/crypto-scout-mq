@@ -1,7 +1,7 @@
-# Issue 10: Create a new `crypto-scout-chatbot-queue` based on `crypto-scout-collector-queue`
+# Issue 10: Create a new `crypto-scout-chatbot-queue` based on `collector-queue`
 
 In this `crypto-scout-mq` project we are going to create a new `crypto-scout-chatbot-queue` based on 
-`crypto-scout-collector-queue`. So let's review and update the project configuration with docs to reflect this change.
+`collector-queue`. So let's review and update the project configuration with docs to reflect this change.
 
 ## Roles
 
@@ -19,7 +19,7 @@ Take the following roles:
 ## Tasks
 
 - As the `expert dev-opts engineer` review the current `crypto-scout-mq` project and update it by creating a new
-  `crypto-scout-chatbot-queue` based on `crypto-scout-collector-queue` to consume analysed crypto data.
+  `crypto-scout-chatbot-queue` based on `collector-queue` to consume analysed crypto data.
 - Recheck your proposal and make sure that they are correct and haven't missed any important points.
 - As the `expert dev-opts engineer` write a report with your proposal and implementation into
   `doc/rabbitmq-production-setup.md`.

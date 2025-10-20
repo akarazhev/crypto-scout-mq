@@ -67,7 +67,7 @@ Verification checklist:
     - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Classic queues:
-    - `crypto-scout-collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
+    - `collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
     - `crypto-scout-chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
     - `crypto-exchange` (topic)
@@ -76,7 +76,7 @@ Verification checklist:
 - Bindings:
     - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
     - `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
-    - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=crypto-scout-collector`.
+    - `collector-exchange` → `collector-queue` with `routing_key=crypto-scout-collector`.
     - `collector-exchange` → `crypto-scout-chatbot-queue` with `routing_key=crypto-scout-chatbot`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
@@ -227,7 +227,7 @@ Create at least one admin user (definitions do not create users by design):
 
 - Streams for crypto and metrics: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`,
   `metrics-cmc-stream`.
-- Classic queues: `crypto-scout-collector-queue`, `crypto-scout-chatbot-queue`.
+- Classic queues: `collector-queue`, `crypto-scout-chatbot-queue`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
 - New binding: `collector-exchange` → `crypto-scout-chatbot-queue` with `routing_key=crypto-scout-chatbot`.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
@@ -364,7 +364,7 @@ Create at least one admin user (definitions do not create users by design):
 
 * __Objective__
 
-  Introduce a new classic queue `crypto-scout-chatbot-queue` based on `crypto-scout-collector-queue` to deliver
+  Introduce a new classic queue `crypto-scout-chatbot-queue` based on `collector-queue` to deliver
   analyzed crypto data to a chatbot processor.
 
 * __Rationale__

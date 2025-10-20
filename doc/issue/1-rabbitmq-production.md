@@ -21,7 +21,7 @@ Take the following roles:
 - As the expert dev-opts engineer review the current Rabbitmq service implementation in `podman-compose.yml` and
   update it to be ready for production.
 - Use streams to collect crypto data: `crypto-bybit-stream`.
-- Use a common queue for incoming events and for messaging between services: `crypto-scout-collector-queue`.
+- Use a common queue for incoming events and for messaging between services: `collector-queue`.
 - Use streams to collect metrics from `Bybit` and `CoinMarketCap`: `metrics-bybit-stream`, `metrics-cmc-stream`.
 - Recheck your proposal and make sure that they are correct and haven't missed any important points.
 - Write a report with your proposal and implementation into `doc/rabbitmq-production-setup.md`.
