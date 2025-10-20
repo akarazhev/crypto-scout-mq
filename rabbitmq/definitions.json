@@ -47,6 +47,18 @@
       }
     },
     {
+      "name": "crypto-bybit-ta-stream",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 2000000000,
+        "x-max-age": "7D",
+        "x-queue-type": "stream",
+        "x-stream-max-segment-size-bytes": 100000000
+      }
+    },
+    {
       "name": "metrics-bybit-stream",
       "vhost": "/",
       "durable": true,
@@ -127,6 +139,14 @@
       "destination": "crypto-bybit-stream",
       "destination_type": "queue",
       "routing_key": "crypto-bybit",
+      "arguments": {}
+    },
+    {
+      "source": "crypto-exchange",
+      "vhost": "/",
+      "destination": "crypto-bybit-ta-stream",
+      "destination_type": "queue",
+      "routing_key": "crypto-bybit-ta",
       "arguments": {}
     },
     {

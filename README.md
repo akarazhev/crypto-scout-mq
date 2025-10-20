@@ -9,15 +9,15 @@ with a pre-provisioned messaging topology.
 - Enabled plugins: management, prometheus, stream, consistent-hash exchange (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
     - Exchanges: `crypto-exchange`, `collector-exchange`, `metrics-exchange` (topic)
-    - Streams: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable, `x-queue-type: stream`)
+    - Streams: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable,
+      `x-queue-type: stream`)
     - Queues: `crypto-scout-collector-queue`
-    - Bindings: `crypto-bybit`, `crypto-scout-collector`, `metrics-bybit`, `metrics-cmc`
+    - Bindings: `crypto-bybit`, `crypto-bybit-ta`, `crypto-scout-collector`, `metrics-bybit`, `metrics-cmc`
 - Stream retention: `x-max-age=7D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
   segment; operator policies can override queue arguments)
 - Prometheus metrics on `:15692/metrics`
 - Healthcheck
 - Graceful shutdown
-- Raised file descriptor limits
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
   `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`

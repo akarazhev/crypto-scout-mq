@@ -24,8 +24,8 @@ messaging and metrics requirements, and how to operate it.
 When clients connect from outside the host or across NAT, the Streams protocol requires a routable advertised address.
 
 - Default advertised address (for inter-container connectivity on the Podman network):
-  - Host: `crypto_scout_mq`
-  - Port: `5552`
+    - Host: `crypto_scout_mq`
+    - Port: `5552`
 - For public/external clients, edit `rabbitmq/rabbitmq.conf` and set:
   ```ini
   stream.advertised_host = <public-dns-or-ip>
@@ -60,6 +60,8 @@ Verification checklist:
 - Streams:
     - `crypto-bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
+    - `crypto-bybit-ta-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+      `x-stream-max-segment-size-bytes=100MB`).
     - `metrics-bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
     - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
@@ -72,6 +74,7 @@ Verification checklist:
     - `metrics-exchange` (topic)
 - Bindings:
     - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
+    - `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
     - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=crypto-scout-collector`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
@@ -79,11 +82,12 @@ Verification checklist:
 ## Policies
 
 - Stream retention policy `stream-retention` applied to queues matching `.*-stream$`:
-  - `queue-type=stream`
-  - `max-length-bytes=2GB`
-  - `max-age=7D`
-  - `stream-max-segment-size-bytes=100MB`
-  This enforces consistent retention for current and future streams, overriding queue-declared arguments when present.
+    - `queue-type=stream`
+    - `max-length-bytes=2GB`
+    - `max-age=7D`
+    - `stream-max-segment-size-bytes=100MB`
+      This enforces consistent retention for current and future streams, overriding queue-declared arguments when
+      present.
 
 ## Stream retention policy
 
@@ -127,9 +131,9 @@ vm_memory_high_watermark.relative = 0.6
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
 - `env_file: ./secret/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
- - Config mounts are read-only: `enabled_plugins`, `rabbitmq.conf`, `definitions.json`.
- - Security hardening: `no-new-privileges`, `init`, `pids_limit: 1024`, tmpfs for `/tmp`,
-   graceful `SIGTERM` and `stop_grace_period: 1m`.
+- Config mounts are read-only: `enabled_plugins`, `rabbitmq.conf`, `definitions.json`.
+- Security hardening: `no-new-privileges`, `init`, `pids_limit: 1024`, tmpfs for `/tmp`, graceful `SIGTERM` and
+  `stop_grace_period: 1m`.
 
 ## Readiness review
 
@@ -200,7 +204,7 @@ Create at least one admin user (definitions do not create users by design):
   podman exec -it crypto-scout-mq rabbitmqctl set_user_tags admin administrator
   podman exec -it crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
   ```
-  
+
 - Delete the default 'guest' user:
   ```bash
   podman exec -it crypto-scout-mq rabbitmqctl delete_user guest
@@ -218,7 +222,8 @@ Create at least one admin user (definitions do not create users by design):
 
 ## Compliance with requirements
 
-- Streams for crypto and metrics: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream`.
+- Streams for crypto and metrics: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`,
+  `metrics-cmc-stream`.
 - Common ingress/messaging queue: `crypto-scout-collector-queue`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
@@ -306,3 +311,52 @@ Create at least one admin user (definitions do not create users by design):
     - The README avoids embedding credentials or user creation in `definitions.json` for security and rotation.
     - TLS enablement is recommended for production networks but is not configured in this repository (left to
       environment-specific deployment).
+
+## Bybit TA stream addition (2025-10-20)
+
+* __Objective__
+
+  Introduce a new technical-analysis stream `crypto-bybit-ta-stream` based on the existing `crypto-bybit-stream` to
+  carry analyzed Bybit data. Keep retention and stream semantics consistent with other streams.
+
+* __Rationale__
+
+    - Separation of concerns: raw vs analyzed data on distinct streams simplifies consumer responsibilities and replay.
+    - Stream benefits: append-only log, consumer offsets, replay capabilities for analytics workloads.
+    - Consistency: reuse existing retention policy `stream-retention` and queue arguments for uniform operations.
+
+* __Implementation__
+
+    - `rabbitmq/definitions.json`:
+        - Added stream queue `crypto-bybit-ta-stream` with `x-queue-type=stream`,
+          `x-max-length-bytes=2GB`, `x-max-age=7D`, `x-stream-max-segment-size-bytes=100MB`.
+        - Added binding from `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
+    - No changes required to `podman-compose.yml` or `rabbitmq/rabbitmq.conf` (Streams already enabled; port `5552`
+      exposed;
+      advertised host/port statically configured).
+
+* __Producers and consumers__
+
+    - Producers: publish analyzed events to `crypto-exchange` with routing key `crypto-bybit-ta`.
+    - Consumers: use Streams protocol on `:5552`, choose consumer group names and starting offsets (earliest/latest) per
+      service.
+
+* __Verification__
+
+    1. Management UI → Exchanges → `crypto-exchange` → Publish message with routing key `crypto-bybit-ta`; confirm it
+       appears in stream `crypto-bybit-ta-stream`.
+    2. Management UI → Queues: verify `crypto-bybit-ta-stream` shows type "stream".
+    3. Ensure Streams listener is active on `5552` and advertised address is correct (see `rabbitmq/rabbitmq.conf`).
+
+* __Rollout__
+
+    - To apply updated definitions in a running environment, restart the broker so it reloads `definitions.json`:
+      ```bash
+      ./script/rmq_compose.sh restart
+      ```
+    - Alternatively, import definitions via the Management HTTP API.
+
+* __Notes__
+
+    - The stream retention policy `stream-retention` (pattern `.*-stream$`) automatically applies to the new stream.
+    - Image remains pinned to `rabbitmq:4.1.4-management`.
