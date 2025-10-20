@@ -66,8 +66,9 @@ Verification checklist:
       `x-stream-max-segment-size-bytes=100MB`).
     - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-- Common ingress/messaging queue:
+- Classic queues:
     - `crypto-scout-collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
+    - `crypto-scout-chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
     - `crypto-exchange` (topic)
     - `collector-exchange` (topic)
@@ -76,6 +77,7 @@ Verification checklist:
     - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
     - `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
     - `collector-exchange` → `crypto-scout-collector-queue` with `routing_key=crypto-scout-collector`.
+    - `collector-exchange` → `crypto-scout-chatbot-queue` with `routing_key=crypto-scout-chatbot`.
     - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
     - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
 
@@ -150,7 +152,8 @@ vm_memory_high_watermark.relative = 0.6
   provided via `./secret/rabbitmq.env`.
 * __Observability__: Prometheus endpoint on `15692`.
 * __Security hardening__: Compose mounts are read-only, `no-new-privileges`, PID limit, tmpfs `/tmp`.
-* __Backpressure__: Collector queue uses lazy mode and `reject-publish` overflow to protect the broker under load.
+* __Backpressure__: Collector and chatbot queues use lazy mode and `reject-publish` overflow to protect the broker under
+  load.
 
 ## Operations
 
@@ -224,8 +227,9 @@ Create at least one admin user (definitions do not create users by design):
 
 - Streams for crypto and metrics: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`,
   `metrics-cmc-stream`.
-- Common ingress/messaging queue: `crypto-scout-collector-queue`.
+- Classic queues: `crypto-scout-collector-queue`, `crypto-scout-chatbot-queue`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
+- New binding: `collector-exchange` → `crypto-scout-chatbot-queue` with `routing_key=crypto-scout-chatbot`.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
   secret-based credentials.
 
@@ -356,7 +360,43 @@ Create at least one admin user (definitions do not create users by design):
       ```
     - Alternatively, import definitions via the Management HTTP API.
 
-* __Notes__
+## Chatbot queue addition (2025-10-20)
 
-    - The stream retention policy `stream-retention` (pattern `.*-stream$`) automatically applies to the new stream.
-    - Image remains pinned to `rabbitmq:4.1.4-management`.
+* __Objective__
+
+  Introduce a new classic queue `crypto-scout-chatbot-queue` based on `crypto-scout-collector-queue` to deliver
+  analyzed crypto data to a chatbot processor.
+
+* __Rationale__
+
+    - Worker-style consumption: classic queue suits task-driven consumers with at-least-once delivery and acks.
+    - Operational parity: reuse collector queue settings (TTL/backlog limits/lazy/overflow) to bound backlog and protect
+      the broker.
+
+* __Implementation__
+
+    - `rabbitmq/definitions.json`:
+        - Added queue `crypto-scout-chatbot-queue` (durable, `x-message-ttl=21600000` (6h), `x-max-length=2500`,
+          `x-queue-mode=lazy`, `x-overflow=reject-publish`).
+        - Added binding from `collector-exchange` → `crypto-scout-chatbot-queue` with
+          `routing_key=crypto-scout-chatbot`.
+    - No changes required to `podman-compose.yml` or `rabbitmq/rabbitmq.conf`.
+
+* __Producers and consumers__
+
+    - Producers: publish analyzed messages to `collector-exchange` with routing key `crypto-scout-chatbot`.
+    - Consumers: consume from `crypto-scout-chatbot-queue` over AMQP; set an appropriate `prefetch` and ack explicitly.
+
+* __Verification__
+
+    1. Management UI → Exchanges → `collector-exchange` → Publish message with routing key `crypto-scout-chatbot`;
+       confirm it appears in `crypto-scout-chatbot-queue`.
+    2. Ensure queue properties show TTL=6h, max length 2500, mode "lazy".
+
+* __Rollout__
+
+    - To apply updated definitions in a running environment, restart the broker so it reloads `definitions.json`:
+      ```bash
+      ./script/rmq_compose.sh restart
+      ```
+    - Alternatively, import definitions via the Management HTTP API.
