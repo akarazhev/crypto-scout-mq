@@ -123,9 +123,10 @@ prometheus.tcp.port = 15692
 prometheus.tcp.ip = 0.0.0.0
 management.tcp.ip = 0.0.0.0
 management.rates_mode = basic
-deprecated_features.permit.management_metrics_collection = true
 disk_free_limit.absolute = 2GB
 vm_memory_high_watermark.relative = 0.6
+cluster_formation.peer_discovery_backend = classic_config
+cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 ```
 
 ## Compose highlights (`podman-compose.yml`)
@@ -147,7 +148,7 @@ vm_memory_high_watermark.relative = 0.6
 * __Ulimits__: `nofile` set to `65536` to prevent FD exhaustion.
 * __Networking__: Ports `5672`, `5552`, `15672`, `15692` published and listeners confirmed in logs.
 * __Config__: `rabbitmq/rabbitmq.conf` enables Streams, Prometheus, loads definitions, pins
-  `management.rates_mode=basic`, and permits `management_metrics_collection`.
+  `management.rates_mode=basic` and configures classic peer discovery with the local node (`rabbit@crypto_scout_mq`).
 * __Plugins__: `rabbitmq/enabled_plugins` activates Management, Prometheus, Stream, Consistent Hash.
 * __Definitions__: `rabbitmq/definitions.json` seeds vhost `/`, queues, exchanges, bindings.
 * __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
@@ -178,16 +179,12 @@ vm_memory_high_watermark.relative = 0.6
 * __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under
   `/var/lib/rabbitmq/mnesia/.../stream/`.
 * __Warnings observed__:
-    - `management_metrics_collection` is deprecated. Impact: future minor releases may disable Management UI metrics by
-      default.
     - Message store indices rebuilt from scratch (expected on first boot or clean data dir).
     - Classic peer discovery message about empty local node list (benign for single-node setups).
 * __Errors__: none observed.
 
 ## Remediation implemented
 
-* __Config__: Added `deprecated_features.permit.management_metrics_collection = true` to `rabbitmq/rabbitmq.conf` to
-  preserve Management metrics behavior across future upgrades.
 * __No further action needed__: Listeners bound, health expected, and definitions applied without errors.
 
 ## User provisioning
@@ -456,3 +453,33 @@ Create at least one admin user (definitions do not create users by design):
         - Publish to `crypto-scout-exchange` with `collector`/`chatbot`/`analyst`; verify messages land in respective
           queues.
     - Ensure Streams listener on `:5552` is reachable; advertised address correct in `rabbitmq/rabbitmq.conf`.
+
+## Log verification (2025-10-24)
+
+- **Status**: Server startup complete; 6 plugins started. AMQP/Streams/Management/Prometheus listeners active.
+  Definitions loaded successfully.
+- **Errors**: none observed.
+- **Warnings observed** and dispositions:
+    - **Erlang cookie override**: expected with `RABBITMQ_ERLANG_COOKIE` supplied via `./secret/rabbitmq.env`.
+    - **Peer discovery (single node)**: previous benign warning about local node list was addressed by explicitly
+      listing the node.
+    - **Message store index rebuild**: expected on first boot/clean data dir.
+
+## Logging remediation (2025-10-24)
+
+- **Objective**: Remove non-actionable warnings at startup and prefer Prometheus for metrics collection.
+- **Changes** (`rabbitmq/rabbitmq.conf`):
+    - Add single-node peer discovery:
+        - `cluster_formation.peer_discovery_backend = classic_config`
+        - `cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq`
+- **Rationale**:
+    - Management UI metrics collection is deprecated; Prometheus on `:15692/metrics` is the primary observability path.
+    - Explicit classic peer discovery node suppresses a benign warning on first boot in single-node setups.
+- **Verification**:
+    1. Restart the service: `./script/rmq_compose.sh restart`.
+    2. Check logs: `./script/rmq_compose.sh logs -n 200` — no management deprecation warning; no peer discovery node
+       list warning; listeners active; definitions applied.
+    3. Validate metrics: `curl -s http://localhost:15692/metrics | head`.
+- **Impact**:
+    - Management UI may show limited/less granular rates; Prometheus remains available. Keep
+      `management.rates_mode=basic` for UI responsiveness.

@@ -3,6 +3,6 @@
 The below list of tasks which needs to be completed to release the version:
 
 - [x] 11-update-queues-exchanges-bindings.
-- [ ] 12-check-fix-logging
+- [x] 12-check-fix-logging
 - [ ] 13-perform-configuration-review
 - [ ] 14-perform-solution-review

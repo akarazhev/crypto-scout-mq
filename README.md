@@ -143,9 +143,10 @@ prometheus.tcp.port = 15692
 prometheus.tcp.ip = 0.0.0.0
 management.tcp.ip = 0.0.0.0
 management.rates_mode = basic
-deprecated_features.permit.management_metrics_collection = true
 disk_free_limit.absolute = 2GB
 vm_memory_high_watermark.relative = 0.6
+cluster_formation.peer_discovery_backend = classic_config
+cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 ```
 
 ## Ports
@@ -186,7 +187,6 @@ Verification:
 
 - Keep `./secret/rabbitmq.env` out of version control; rotate the Erlang cookie per environment.
 - Create per-service users with least-privilege permissions.
-- Consider enabling TLS for AMQP, Streams, and Management in production networks.
 
 ## Troubleshooting
 
