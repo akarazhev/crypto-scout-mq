@@ -24,7 +24,7 @@ Take the following roles:
   `exchanges`, `bindings`, `routing keys` to consume crypto data and interservice communication. Rename streams:
   `crypto-bybit-stream` -> `bybit-crypto-stream`, `crypto-bybit-ta-stream` -> `bybit-ta-crypto-stream`,
   `metrics-bybit-stream` -> `bybit-parser-stream`, `metrics-cmc-stream` -> `cmc-parser-stream`.
-  Define queues if they are missed: `collector-queue`, `chatbot-queue`, `chatbot-analyst`. Rename exchanges:
+  Define queues if they are missed: `collector-queue`, `chatbot-queue`, `analyst-queue`. Rename exchanges:
   `metrics-exchange` -> `parser-exchange`, `crypto-exchange` -> `bybit-exchange`. Define exchange:
   `crypto-scout-exchange`. Rename routing_key: `crypto-bybit` -> `bybit`, `crypto-bybit-ta` -> `bybit-ta`, 
   `metrics-bybit` -> `bybit-parser`, `metrics-cmc` -> `cmc-parser`. Define routing_keys if they are missed: `collector`, 

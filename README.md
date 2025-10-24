@@ -8,11 +8,11 @@ with a pre-provisioned messaging topology.
 - RabbitMQ 4.1.4-management image
 - Enabled plugins: management, prometheus, stream, consistent-hash exchange (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
-    - Exchanges: `crypto-exchange`, `crypto-scout-exchange`, `metrics-exchange` (topic)
-    - Streams: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` (durable,
+    - Exchanges: `bybit-exchange`, `crypto-scout-exchange`, `parser-exchange` (topic)
+    - Streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream` (durable,
       `x-queue-type: stream`)
-    - Queues: `collector-queue`, `chatbot-queue`
-    - Bindings: `crypto-bybit`, `crypto-bybit-ta`, `collector`, `chatbot`, `metrics-bybit`, `metrics-cmc`
+    - Queues: `collector-queue`, `chatbot-queue`, `analyst-queue`
+    - Bindings: `bybit`, `bybit-ta`, `collector`, `chatbot`, `analyst`, `bybit-parser`, `cmc-parser`
 - Stream retention: `x-max-age=7D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
   segment; operator policies can override queue arguments)
 - Prometheus metrics on `:15692/metrics`
@@ -21,8 +21,8 @@ with a pre-provisioned messaging topology.
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
   `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
-- Collector and chatbot queues hardened: lazy mode and `reject-publish` overflow for `collector-queue` and
-  `chatbot-queue`
+- Collector, chatbot, analyst queues hardened: lazy mode and `reject-publish` overflow for `collector-queue`,
+  `chatbot-queue`, and `analyst-queue`
 - Stream retention enforced via policy `stream-retention` for `.*-stream$` queues
 
 ## Repository layout

@@ -58,28 +58,30 @@ Verification checklist:
 ## Streams and queues (from `rabbitmq/definitions.json`)
 
 - Streams:
-    - `crypto-bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `bybit-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `crypto-bybit-ta-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `bybit-ta-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `metrics-bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `bybit-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `metrics-cmc-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `cmc-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Classic queues:
     - `collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
     - `chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
+    - `analyst-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
-    - `crypto-exchange` (topic)
+    - `bybit-exchange` (topic)
     - `crypto-scout-exchange` (topic)
-    - `metrics-exchange` (topic)
+    - `parser-exchange` (topic)
 - Bindings:
-    - `crypto-exchange` → `crypto-bybit-stream` with `routing_key=crypto-bybit`.
-    - `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
+    - `bybit-exchange` → `bybit-crypto-stream` with `routing_key=bybit`.
+    - `bybit-exchange` → `bybit-ta-crypto-stream` with `routing_key=bybit-ta`.
+    - `parser-exchange` → `bybit-parser-stream` with `routing_key=bybit-parser`.
+    - `parser-exchange` → `cmc-parser-stream` with `routing_key=cmc-parser`.
     - `crypto-scout-exchange` → `collector-queue` with `routing_key=collector`.
     - `crypto-scout-exchange` → `chatbot-queue` with `routing_key=chatbot`.
-    - `metrics-exchange` → `metrics-bybit-stream` with `routing_key=metrics-bybit`.
-    - `metrics-exchange` → `metrics-cmc-stream` with `routing_key=metrics-cmc`.
+    - `crypto-scout-exchange` → `analyst-queue` with `routing_key=analyst`.
 
 ## Policies
 
@@ -225,11 +227,12 @@ Create at least one admin user (definitions do not create users by design):
 
 ## Compliance with requirements
 
-- Streams for crypto and metrics: `crypto-bybit-stream`, `crypto-bybit-ta-stream`, `metrics-bybit-stream`,
-  `metrics-cmc-stream`.
-- Classic queues: `collector-queue`, `chatbot-queue`.
+- Streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream`.
+- Classic queues: `collector-queue`, `chatbot-queue`, `analyst-queue`.
+- Exchanges: `bybit-exchange`, `parser-exchange`, `crypto-scout-exchange`.
+- Bindings and routing keys: `bybit`, `bybit-ta`, `bybit-parser`, `cmc-parser`, plus interservice `collector`,
+  `chatbot`, `analyst`.
 - Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
-- New binding: `crypto-scout-exchange` → `chatbot-queue` with `routing_key=chatbot`.
 - Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
   secret-based credentials.
 
@@ -352,14 +355,6 @@ Create at least one admin user (definitions do not create users by design):
     2. Management UI → Queues: verify `crypto-bybit-ta-stream` shows type "stream".
     3. Ensure Streams listener is active on `5552` and advertised address is correct (see `rabbitmq/rabbitmq.conf`).
 
-* __Rollout__
-
-    - To apply updated definitions in a running environment, restart the broker so it reloads `definitions.json`:
-      ```bash
-      ./script/rmq_compose.sh restart
-      ```
-    - Alternatively, import definitions via the Management HTTP API.
-
 ## Chatbot queue addition (2025-10-20)
 
 * __Objective__
@@ -399,3 +394,65 @@ Create at least one admin user (definitions do not create users by design):
       ./script/rmq_compose.sh restart
       ```
     - Alternatively, import definitions via the Management HTTP API.
+
+## Topology update (2025-10-24)
+
+- **Objective**
+
+  Align names and routing for crypto data ingestion, parser outputs, and interservice communication; add an analyst
+  queue for chatbot processing.
+
+- **Changes (rename map and additions)**
+
+    - Streams:
+        - `crypto-bybit-stream` → `bybit-crypto-stream`
+        - `crypto-bybit-ta-stream` → `bybit-ta-crypto-stream`
+        - `metrics-bybit-stream` → `bybit-parser-stream`
+        - `metrics-cmc-stream` → `cmc-parser-stream`
+    - Exchanges:
+        - `metrics-exchange` → `parser-exchange`
+        - `crypto-exchange` → `bybit-exchange`
+        - Defined: `crypto-scout-exchange` (topic)
+    - Classic queues:
+        - Defined: `analyst-queue` (durable; TTL=6h; max length 2500; lazy; `x-overflow=reject-publish`)
+    - Routing keys:
+        - `crypto-bybit` → `bybit`
+        - `crypto-bybit-ta` → `bybit-ta`
+        - `metrics-bybit` → `bybit-parser`
+        - `metrics-cmc` → `cmc-parser`
+        - Defined: `collector`, `chatbot`, `analyst`
+
+- **Implementation**
+
+    - Updated `rabbitmq/definitions.json`:
+        - Renamed streams and exchanges as above; added `analyst-queue` queue with hardened arguments.
+        - Updated bindings to point to new exchanges and destinations with new routing keys.
+    - No changes required to `podman-compose.yml`, `rabbitmq/rabbitmq.conf`, or `rabbitmq/enabled_plugins`.
+
+- **Producers and consumers**
+
+    - Bybit producers: publish to `bybit-exchange` with `routing_key=bybit` or `bybit-ta`.
+    - Parser producers: publish to `parser-exchange` with `routing_key=bybit-parser` or `cmc-parser`.
+    - Consumers:
+        - Streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream` via
+          Streams protocol on `:5552`.
+        - Classic: `collector-queue`, `chatbot-queue`, `analyst-queue` over AMQP (`prefetch` + explicit acks
+          recommended).
+
+- **Migration and rollout**
+
+    1. Apply updated definitions (restart to reload `definitions.json` or import via HTTP API).
+    2. Retarget producers to new exchanges and routing keys.
+    3. Point consumers at the new streams/queues; for streams choose group/offset strategy (earliest/latest).
+    4. Optionally drain/verify legacy resources before removal.
+    5. Remove unused legacy resources after cutover.
+
+- **Verification**
+
+    - Management UI → Exchanges:
+        - Publish to `bybit-exchange` with `bybit`/`bybit-ta`; verify messages in `bybit-crypto-stream`/
+          `bybit-ta-crypto-stream`.
+        - Publish to `parser-exchange` with `bybit-parser`/`cmc-parser`; verify in corresponding streams.
+        - Publish to `crypto-scout-exchange` with `collector`/`chatbot`/`analyst`; verify messages land in respective
+          queues.
+    - Ensure Streams listener on `:5552` is reachable; advertised address correct in `rabbitmq/rabbitmq.conf`.
