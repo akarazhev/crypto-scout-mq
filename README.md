@@ -184,6 +184,8 @@ Verification:
 
 ## Security notes
 
+- Management UI (15672) and Prometheus (15692) are bound to loopback via compose (`127.0.0.1:<port>:<port>`). For
+  remote access, use an SSH tunnel or place a reverse proxy with TLS and auth in front.
 - Keep `./secret/rabbitmq.env` out of version control; rotate the Erlang cookie per environment.
 - Create per-service users with least-privilege permissions.
 

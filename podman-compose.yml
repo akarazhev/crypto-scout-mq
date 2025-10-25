@@ -7,9 +7,9 @@ services:
     hostname: crypto_scout_mq
     ports:
       - "5672:5672"   # AMQP protocol
-      - "15672:15672" # Management UI
+      - "127.0.0.1:15672:15672" # Management UI (loopback only)
       - "5552:5552"   # Stream protocol (required for RabbitMQ streams)
-      - "15692:15692" # Prometheus metrics
+      - "127.0.0.1:15692:15692" # Prometheus metrics (loopback only)
     volumes:
       - "./data/rabbitmq:/var/lib/rabbitmq"
       - "./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro"
