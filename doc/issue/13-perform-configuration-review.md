@@ -51,7 +51,6 @@ Take the following roles:
 
 - **[restrict exposure]** If not needed publicly, bind management and metrics to loopback in `podman-compose.yml`:
   `127.0.0.1:15672:15672`, `127.0.0.1:15692:15692`, or set `management.tcp.ip = 127.0.0.1` and front with TLS proxy.
-- **[plugins]** Remove `rabbitmq_consistent_hash_exchange` from `rabbitmq/enabled_plugins` if unused.
 - **[resource limits]** Add CPU/memory limits in `podman-compose.yml` per host capacity.
 - **[extra hardening]** Consider `cap_drop: ["ALL"]` (non-privileged ports), `read_only: true` with explicit writable
   mounts for `/var/lib/rabbitmq` and tmpfs for `/tmp` (validate before enabling).

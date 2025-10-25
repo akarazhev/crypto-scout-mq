@@ -172,7 +172,7 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 ## Log verification (2025-10-03)
 
 * __Status__: Server startup complete; 6 plugins started (`rabbitmq_prometheus`, `rabbitmq_stream`,
-  `rabbitmq_consistent_hash_exchange`, `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
+  `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
 * __Ports/listeners__: AMQP 5672, Streams 5552, Management 15672, Prometheus 15692 listeners started successfully.
 * __Definitions__: vhost `/`, 3 exchanges, 4 queues, and 4 bindings imported from `rabbitmq/definitions.json`.
 * __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under
@@ -498,8 +498,6 @@ Create at least one admin user (definitions do not create users by design):
     - Restrict Management and Prometheus exposure if not needed publicly:
         - Map to loopback in `podman-compose.yml`: `127.0.0.1:15672:15672`, `127.0.0.1:15692:15692`.
         - Or set `management.tcp.ip = 127.0.0.1` and front with a reverse proxy (TLS + auth) for remote access.
-    - Plugins: remove `rabbitmq_consistent_hash_exchange` from `rabbitmq/enabled_plugins` if it is not used by your
-      topology.
     - Resource constraints: add CPU/memory limits in `podman-compose.yml` per host capacity and SLOs.
     - Extra hardening: consider `cap_drop: ["ALL"]` (works with non-privileged ports), and `read_only: true` with
       explicit writable mounts for `/var/lib/rabbitmq` and tmpfs for `/tmp` (test thoroughly before enabling).
