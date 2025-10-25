@@ -1,4 +1,4 @@
-# Issue 7: Improve `crypto-scout-mq` configuration
+# Issue 8: Improve `crypto-scout-mq` configuration
 
 In this `crypto-scout-mq` project we are going to improve the configuration and verify if this is production ready and
 ready to manage a lot of the data.
