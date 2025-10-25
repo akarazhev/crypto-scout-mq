@@ -28,3 +28,43 @@ Take the following roles:
   important points.
 - As the `expert technical writer` update the `README.md` and `rebbitmq-production-setup.md` files with your results.
 - As the `expert technical writer` update the `13-perform-configuration-review.md` file with your resolution.
+
+## Resolution (2025-10-25)
+
+### Findings
+
+- **[configs reviewed]** `podman-compose.yml`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json`,
+  `rabbitmq/enabled_plugins`, `secret/README.md`, `secret/rabbitmq.env.example`.
+- **[observability]** Prometheus metrics exposed on `:15692`; management UI `:15672`; Streams listener `:5552` with
+  static advertised host/port.
+- **[topology]** Streams and classic queues match `rabbitmq/definitions.json`; retention policy `stream-retention` in
+  place; hardened classic queues (`lazy`, `reject-publish`).
+- **[reliability]** Healthcheck configured; persistent volume; ulimit `nofile=65536`; graceful shutdown.
+- **[security]** No users in definitions; secrets via `./secret/rabbitmq.env` (git ignored); hardening in compose
+  (`no-new-privileges`, read-only config mounts, `pids_limit`, tmpfs `/tmp`).
+
+### Readiness verdict
+
+- **Ready for production (single-node)** given current scope and constraints.
+
+### Recommendations (optional hardening)
+
+- **[restrict exposure]** If not needed publicly, bind management and metrics to loopback in `podman-compose.yml`:
+  `127.0.0.1:15672:15672`, `127.0.0.1:15692:15692`, or set `management.tcp.ip = 127.0.0.1` and front with TLS proxy.
+- **[plugins]** Remove `rabbitmq_consistent_hash_exchange` from `rabbitmq/enabled_plugins` if unused.
+- **[resource limits]** Add CPU/memory limits in `podman-compose.yml` per host capacity.
+- **[extra hardening]** Consider `cap_drop: ["ALL"]` (non-privileged ports), `read_only: true` with explicit writable
+  mounts for `/var/lib/rabbitmq` and tmpfs for `/tmp` (validate before enabling).
+- **[TLS]** Enable TLS for AMQP/Streams/Management on untrusted networks.
+- **[backups]** Snapshot `./data/rabbitmq` regularly; test restore.
+- **[streams external]** For external clients, set `stream.advertised_host/port` to a routable address and open
+  firewall.
+- **[network]** Ensure external network `crypto-scout-bridge` exists (use `script/network.sh`).
+
+### Documentation updates
+
+- **doc/rabbitmq-production-setup.md**: Appended "Configuration review (2025-10-25)" section with detailed guidance.
+
+### Status
+
+- **Resolved**. Project is production-ready for single-node; optimizations are optional and environment-dependent.

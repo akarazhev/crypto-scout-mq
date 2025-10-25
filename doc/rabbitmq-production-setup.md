@@ -483,3 +483,33 @@ Create at least one admin user (definitions do not create users by design):
 - **Impact**:
     - Management UI may show limited/less granular rates; Prometheus remains available. Keep
       `management.rates_mode=basic` for UI responsiveness.
+
+## Configuration review (2025-10-25)
+
+- **[verdict]** Ready for production in a single-node topology.
+- **[reviewed files]** `podman-compose.yml`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json`,
+  `rabbitmq/enabled_plugins`, `secret/README.md`, `secret/rabbitmq.env.example`.
+- **[strengths]** Version pinning (`rabbitmq:4.1.4-management`), persistent storage, healthcheck with start period,
+  file descriptors `nofile=65536`, graceful shutdown, Streams retention policy, Prometheus metrics, read-only config
+  mounts, `no-new-privileges`, PID limit, and tmpfs for `/tmp`.
+- **[security model]** No users embedded in definitions. Provision admin/service users post-deploy via
+  `script/rmq_user.sh` and delete `guest`.
+
+- **[recommendations]** Optional hardening and operational enhancements:
+    - Restrict Management and Prometheus exposure if not needed publicly:
+        - Map to loopback in `podman-compose.yml`: `127.0.0.1:15672:15672`, `127.0.0.1:15692:15692`.
+        - Or set `management.tcp.ip = 127.0.0.1` and front with a reverse proxy (TLS + auth) for remote access.
+    - Plugins: remove `rabbitmq_consistent_hash_exchange` from `rabbitmq/enabled_plugins` if it is not used by your
+      topology.
+    - Resource constraints: add CPU/memory limits in `podman-compose.yml` per host capacity and SLOs.
+    - Extra hardening: consider `cap_drop: ["ALL"]` (works with non-privileged ports), and `read_only: true` with
+      explicit writable mounts for `/var/lib/rabbitmq` and tmpfs for `/tmp` (test thoroughly before enabling).
+    - TLS: enable TLS for AMQP, Streams, and Management when crossing untrusted networks.
+    - Backups: snapshot `./data/rabbitmq` regularly and perform restore drills.
+    - Streams external clients: if accessed from outside the host, set `stream.advertised_host/port` to routable values
+      in `rabbitmq/rabbitmq.conf` and ensure firewall/NAT rules are in place.
+    - Watermarks: adjust `disk_free_limit.absolute` and `vm_memory_high_watermark.relative` to match the host's storage
+      and workload profile.
+
+- **[recheck]** No blocking issues found. The deployment meets production-readiness goals for a single-node broker with
+  Prometheus observability and pre-provisioned topology.
