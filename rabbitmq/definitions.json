@@ -123,7 +123,7 @@
     {
       "name": "parser-exchange",
       "vhost": "/",
-      "type": "topic",
+      "type": "direct",
       "durable": true,
       "auto_delete": false,
       "internal": false,
@@ -132,7 +132,7 @@
     {
       "name": "bybit-exchange",
       "vhost": "/",
-      "type": "topic",
+      "type": "direct",
       "durable": true,
       "auto_delete": false,
       "internal": false,
@@ -141,7 +141,7 @@
     {
       "name": "crypto-scout-exchange",
       "vhost": "/",
-      "type": "topic",
+      "type": "direct",
       "durable": true,
       "auto_delete": false,
       "internal": false,
