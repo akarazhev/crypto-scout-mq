@@ -6,9 +6,9 @@ with a pre-provisioned messaging topology.
 ## Features
 
 - RabbitMQ 4.1.4-management image
-- Enabled plugins: management, prometheus, stream, consistent-hash exchange (`rabbitmq/enabled_plugins`)
+- Enabled plugins: management, prometheus, stream (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
-    - Exchanges: `bybit-exchange`, `crypto-scout-exchange`, `parser-exchange` (topic)
+    - Exchanges: `bybit-exchange`, `crypto-scout-exchange`, `parser-exchange` (direct)
     - Streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream` (durable,
       `x-queue-type: stream`)
     - Queues: `collector-queue`, `chatbot-queue`, `analyst-queue`
@@ -16,7 +16,6 @@ with a pre-provisioned messaging topology.
 - Stream retention: `x-max-age=7D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
   segment; operator policies can override queue arguments)
 - Prometheus metrics on `:15692/metrics`
-- Healthcheck
 - Graceful shutdown
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),

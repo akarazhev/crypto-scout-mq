@@ -6,8 +6,7 @@ messaging and metrics requirements, and how to operate it.
 ## Overview
 
 - Image: `rabbitmq:4.1.4-management`
-- Plugins: `rabbitmq_management`, `rabbitmq_prometheus`, `rabbitmq_stream`, `rabbitmq_consistent_hash_exchange` (see
-  `rabbitmq/enabled_plugins`)
+- Plugins: `rabbitmq_management`, `rabbitmq_prometheus`, `rabbitmq_stream` (see `rabbitmq/enabled_plugins`)
 - Config file: `rabbitmq/rabbitmq.conf`
 - Definitions import: `rabbitmq/definitions.json` (queues, exchanges, bindings)
 - Compose file: `podman-compose.yml`
@@ -71,9 +70,9 @@ Verification checklist:
     - `chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
     - `analyst-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
 - Exchanges:
-    - `bybit-exchange` (topic)
-    - `crypto-scout-exchange` (topic)
-    - `parser-exchange` (topic)
+    - `bybit-exchange` (direct)
+    - `crypto-scout-exchange` (direct)
+    - `parser-exchange` (direct)
 - Bindings:
     - `bybit-exchange` → `bybit-crypto-stream` with `routing_key=bybit`.
     - `bybit-exchange` → `bybit-ta-crypto-stream` with `routing_key=bybit-ta`.
@@ -149,7 +148,7 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 * __Networking__: Ports `5672`, `5552`, `15672`, `15692` published and listeners confirmed in logs.
 * __Config__: `rabbitmq/rabbitmq.conf` enables Streams, Prometheus, loads definitions, pins
   `management.rates_mode=basic` and configures classic peer discovery with the local node (`rabbit@crypto_scout_mq`).
-* __Plugins__: `rabbitmq/enabled_plugins` activates Management, Prometheus, Stream, Consistent Hash.
+* __Plugins__: `rabbitmq/enabled_plugins` activates Management, Prometheus, Stream.
 * __Definitions__: `rabbitmq/definitions.json` seeds vhost `/`, queues, exchanges, bindings.
 * __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
   provided via `./secret/rabbitmq.env`.
@@ -409,7 +408,7 @@ Create at least one admin user (definitions do not create users by design):
     - Exchanges:
         - `metrics-exchange` → `parser-exchange`
         - `crypto-exchange` → `bybit-exchange`
-        - Defined: `crypto-scout-exchange` (topic)
+        - Defined: `crypto-scout-exchange` (direct)
     - Classic queues:
         - Defined: `analyst-queue` (durable; TTL=6h; max length 2500; lazy; `x-overflow=reject-publish`)
     - Routing keys:
