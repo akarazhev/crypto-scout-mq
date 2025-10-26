@@ -18,6 +18,9 @@ messaging and metrics requirements, and how to operate it.
 - 15672: Management UI
 - 15692: Prometheus metrics (`/metrics`)
 
+Note: In the compose file, Management UI (15672) and Prometheus (15692) are bound to loopback (`127.0.0.1`) for
+local-only access. Use an SSH tunnel or a reverse proxy with TLS/auth for remote access.
+
 ## External access (Streams advertised host/port)
 
 When clients connect from outside the host or across NAT, the Streams protocol requires a routable advertised address.
@@ -132,6 +135,7 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 
 - Image pinned to `4.1.4-management`.
 - Ports: `5672`, `5552`, `15672`, `15692`.
+- Resource limits (small profile): `cpus: "2.0"`, `mem_limit: "1g"`, `mem_reservation: "512m"`.
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
 - `env_file: ./secret/rabbitmq.env` provides `RABBITMQ_ERLANG_COOKIE`.
@@ -145,6 +149,7 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 * __Persistence__: Volume `./data/rabbitmq:/var/lib/rabbitmq` ensures durable data.
 * __Health__: Healthcheck uses `rabbitmq-diagnostics -q ping` with `start_period: 30s`.
 * __Ulimits__: `nofile` set to `65536` to prevent FD exhaustion.
+* __Resource limits__: `cpus="2.0"`, `mem_limit="1g"`, `mem_reservation="512m"` (small production profile in compose).
 * __Networking__: Ports `5672`, `5552`, `15672`, `15692` published and listeners confirmed in logs.
 * __Config__: `rabbitmq/rabbitmq.conf` enables Streams, Prometheus, loads definitions, pins
   `management.rates_mode=basic` and configures classic peer discovery with the local node (`rabbit@crypto_scout_mq`).

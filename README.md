@@ -182,6 +182,14 @@ Verification:
 - Data directory is persisted at `./data/rabbitmq:/var/lib/rabbitmq`.
 - Back up the data directory regularly for durability and disaster recovery.
 
+## Resource limits
+
+- Small production profile in `podman-compose.yml`:
+    - `cpus: "2.0"`
+    - `mem_limit: "1g"`
+    - `mem_reservation: "512m"`
+- Tune these under `services.crypto-scout-mq` based on host capacity and SLOs.
+
 ## Security notes
 
 - Management UI (15672) and Prometheus (15692) are bound to loopback via compose (`127.0.0.1:<port>:<port>`). For
