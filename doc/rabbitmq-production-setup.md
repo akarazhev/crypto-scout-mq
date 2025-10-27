@@ -21,6 +21,22 @@ messaging and metrics requirements, and how to operate it.
 Note: In the compose file, Management UI (15672) and Prometheus (15692) are bound to loopback (`127.0.0.1`) for
 local-only access. Use an SSH tunnel or a reverse proxy with TLS/auth for remote access.
 
+## Prometheus scrape example
+
+If Prometheus runs on the same host (recommended with loopback bindings), add a job like:
+
+```yaml
+scrape_configs:
+  - job_name: rabbitmq
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ '127.0.0.1:15692' ]
+        labels:
+          instance: crypto-scout-mq
+```
+
+If Prometheus runs remotely, keep 15692 bound to loopback and scrape via an SSH tunnel or a reverse proxy with TLS/auth.
+
 ## External access (Streams advertised host/port)
 
 When clients connect from outside the host or across NAT, the Streams protocol requires a routable advertised address.
@@ -163,6 +179,20 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
   load.
 
 ## Operations
+
+0) Ensure Podman network exists (compose uses an external network `crypto-scout-bridge`):
+
+Recommended:
+
+```bash
+./script/network.sh
+```
+
+Alternative:
+
+```bash
+podman network create crypto-scout-bridge
+```
 
 1) Prepare a secret (see `secret/README.md`). Ensure `./secret/rabbitmq.env` defines the env var above.
 2) Start: `podman compose -f podman-compose.yml up -d`
@@ -515,3 +545,28 @@ Create at least one admin user (definitions do not create users by design):
 
 - **[recheck]** No blocking issues found. The deployment meets production-readiness goals for a single-node broker with
   Prometheus observability and pre-provisioned topology.
+
+## Solution review (2025-10-27)
+
+- **[verdict]** Ready for production (single-node) with AMQP + Streams + Prometheus.
+- **[what changed]** Documentation now includes the external Podman network prerequisite and expanded quick start/ops.
+- **[validated]**
+    - Image pinning: `rabbitmq:4.1.4-management` in `podman-compose.yml`.
+    - Plugins: `rabbitmq_management`, `rabbitmq_prometheus`, `rabbitmq_stream` in `rabbitmq/enabled_plugins`.
+    - Exchanges are `direct` in `rabbitmq/definitions.json` (`bybit-exchange`, `parser-exchange`,
+      `crypto-scout-exchange`).
+    - Streams and classic queues configured with retention/TTL/backpressure as listed above.
+    - Streams external access documented via `stream.advertised_host/port` in `rabbitmq/rabbitmq.conf`.
+- **[recommendations]** Optional hardening and ops enhancements to consider per environment:
+    - Network exposure: keep Management (15672) and Prometheus (15692) on loopback; use SSH tunnel or reverse proxy with
+      TLS/auth if remote access is required.
+    - TLS: enable TLS for AMQP/Streams/Management on untrusted networks.
+    - Container hardening: evaluate `cap_drop: ["ALL"]` and `read_only: true` with explicit writable mounts (
+      `/var/lib/rabbitmq`, tmpfs `/tmp`). Test thoroughly.
+    - Resource tuning: adjust `cpus`, `mem_limit`, `disk_free_limit.absolute`, and `vm_memory_high_watermark.relative`
+      to match workload and host capacity.
+    - Backups: schedule regular snapshots of `./data/rabbitmq` and perform restore drills.
+    - Logs: rely on Prometheus for metrics; keep `management.rates_mode=basic` for UI responsiveness. Configure
+      host/container log rotation as needed.
+
+No additional code changes are required for production readiness at this time.

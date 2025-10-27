@@ -31,6 +31,7 @@ with a pre-provisioned messaging topology.
 - `secret/` — instructions and example for `rabbitmq.env` (`RABBITMQ_ERLANG_COOKIE`)
 - `script/rmq_user.sh` — helper to create/update users and permissions
 - `script/rmq_compose.sh` — production runner to manage Podman Compose (up/down/logs/status/wait)
+- `script/network.sh` — helper to create the external Podman network `crypto-scout-bridge`
 - `doc/` — production setup notes and guides
 
 ## Prerequisites
@@ -39,6 +40,20 @@ with a pre-provisioned messaging topology.
 - macOS/Linux shell with `openssl` (optional, for generating secret)
 
 ## Quick start
+
+0) Ensure Podman network exists (compose uses an external network `crypto-scout-bridge`):
+
+Recommended:
+
+```bash
+./script/network.sh
+```
+
+Alternative:
+
+```bash
+podman network create crypto-scout-bridge
+```
 
 1) Prepare secret (see `secret/README.md`). Example to generate a strong Erlang cookie:
 
@@ -154,6 +169,22 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 - 5552: Streams
 - 15672: Management UI
 - 15692: Prometheus metrics
+
+## Prometheus scrape example
+
+If Prometheus runs on the same host (recommended with loopback bindings), add a job like:
+
+```yaml
+scrape_configs:
+  - job_name: rabbitmq
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ '127.0.0.1:15692' ]
+        labels:
+          instance: crypto-scout-mq
+```
+
+If Prometheus runs remotely, keep 15692 bound to loopback and scrape via an SSH tunnel or a reverse proxy with TLS/auth.
 
 ## External access (Streams advertised host/port)
 
