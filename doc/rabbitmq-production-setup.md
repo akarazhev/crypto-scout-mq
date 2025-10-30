@@ -76,13 +76,13 @@ Verification checklist:
 ## Streams and queues (from `rabbitmq/definitions.json`)
 
 - Streams:
-    - `bybit-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `bybit-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `bybit-ta-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `bybit-ta-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `bybit-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `bybit-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `cmc-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=7D`, `x-max-length-bytes=2GB`,
+    - `cmc-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Classic queues:
     - `collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
@@ -106,7 +106,7 @@ Verification checklist:
 - Stream retention policy `stream-retention` applied to queues matching `.*-stream$`:
     - `queue-type=stream`
     - `max-length-bytes=2GB`
-    - `max-age=7D`
+    - `max-age=1D`
     - `stream-max-segment-size-bytes=100MB`
       This enforces consistent retention for current and future streams, overriding queue-declared arguments when
       present.
@@ -114,7 +114,7 @@ Verification checklist:
 ## Stream retention policy
 
 - **Configuration**: We combine time and size-based retention on all streams:
-    - `x-max-age=7D`
+    - `x-max-age=1D`
     - `x-max-length-bytes=2GB`
     - `x-stream-max-segment-size-bytes=100MB`
 - **Semantics**:
@@ -367,7 +367,7 @@ Create at least one admin user (definitions do not create users by design):
 
     - `rabbitmq/definitions.json`:
         - Added stream queue `crypto-bybit-ta-stream` with `x-queue-type=stream`,
-          `x-max-length-bytes=2GB`, `x-max-age=7D`, `x-stream-max-segment-size-bytes=100MB`.
+          `x-max-length-bytes=2GB`, `x-max-age=1D`, `x-stream-max-segment-size-bytes=100MB`.
         - Added binding from `crypto-exchange` → `crypto-bybit-ta-stream` with `routing_key=crypto-bybit-ta`.
     - No changes required to `podman-compose.yml` or `rabbitmq/rabbitmq.conf` (Streams already enabled; port `5552`
       exposed;

@@ -29,10 +29,10 @@ Take the following roles:
 ## Resolution (2025-10-11)
 
 - **What changed**
-    - Updated `rabbitmq/definitions.json` to add time-based retention to all streams by setting `x-max-age: "7D"`
+    - Updated `rabbitmq/definitions.json` to add time-based retention to all streams by setting `x-max-age: "1D"`
       alongside existing size-based settings.
     - Affected streams: `crypto-bybit-stream`, `metrics-bybit-stream`, `metrics-cmc-stream` under vhost `/`.
-    - Resulting arguments now include: `x-max-age=7D`, `x-max-length-bytes=2000000000` (≈2GB),
+    - Resulting arguments now include: `x-max-age=1D`, `x-max-length-bytes=2000000000` (≈2GB),
       `x-stream-max-segment-size-bytes=100000000` (100MB), `x-queue-type=stream`.
 
 - **Rationale**
@@ -54,7 +54,7 @@ Take the following roles:
     1) Start the service and load definitions (already configured via `rabbitmq/rabbitmq.conf: load_definitions`).
     2) Management UI → Queues → select each stream → Arguments should list `x-max-age`, `x-max-length-bytes`,
        `x-stream-max-segment-size-bytes`.
-    3) Publish messages to exceed a segment and wait >7 days equivalent in a test (or temporarily reduce `x-max-age` to
+    3) Publish messages to exceed a segment and wait >1 days equivalent in a test (or temporarily reduce `x-max-age` to
        minutes) to observe segment truncation.
     4) Optional: confirm via HTTP API or `rabbitmqadmin` that arguments are present.
 

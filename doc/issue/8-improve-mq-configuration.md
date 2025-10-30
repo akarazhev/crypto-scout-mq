@@ -85,7 +85,7 @@ networks:
 
 - **[Topology improvements]** Updated `rabbitmq/definitions.json`:
     - Added policy `stream-retention` for queues matching `.*-stream$` to enforce retention: `max-length-bytes=2GB`,
-      `max-age=7D`, `stream-max-segment-size-bytes=100MB`.
+      `max-age=1D`, `stream-max-segment-size-bytes=100MB`.
     - Ensured `metrics-bybit-stream` and `metrics-cmc-stream` explicitly declare `x-queue-type=stream` with the same
       retention arguments.
     - Hardened `collector-queue` with `x-queue-mode=lazy` and `x-overflow=reject-publish`.
