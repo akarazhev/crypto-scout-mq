@@ -6,56 +6,33 @@ messaging and metrics requirements, and how to operate it.
 ## Overview
 
 - Image: `rabbitmq:4.1.4-management`
-- Plugins: `rabbitmq_management`, `rabbitmq_prometheus`, `rabbitmq_stream` (see `rabbitmq/enabled_plugins`)
+- Plugins: `rabbitmq_management`, `rabbitmq_stream` (see `rabbitmq/enabled_plugins`)
 - Config file: `rabbitmq/rabbitmq.conf`
 - Definitions import: `rabbitmq/definitions.json` (queues, exchanges, bindings)
 - Compose file: `podman-compose.yml`
 
 ## Networking and ports
 
-- 5672: AMQP
-- 5552: Streams (required for `x-queue-type: stream`)
-- 15672: Management UI
-- 15692: Prometheus metrics (`/metrics`)
+- 5672: AMQP (container network only, not exposed to host)
+- 5552: Streams (container network only, not exposed to host)
+- 15672: Management UI (localhost only, `127.0.0.1`)
 
-Note: In the compose file, Management UI (15672) and Prometheus (15692) are bound to loopback (`127.0.0.1`) for
-local-only access. Use an SSH tunnel or a reverse proxy with TLS/auth for remote access.
+Note: AMQP and Streams ports are **not mapped to the host** — only containers on `crypto-scout-bridge` can reach them.
+Management UI is bound to loopback for local-only access. Use an SSH tunnel or reverse proxy with TLS/auth for remote
+access.
 
-## Prometheus scrape example
+## Container networking
 
-If Prometheus runs on the same host (recommended with loopback bindings), add a job like:
+AMQP (5672) and Streams (5552) are **not exposed to the host** — only to containers on the `crypto-scout-bridge`
+network. Other services connect via:
 
-```yaml
-scrape_configs:
-  - job_name: rabbitmq
-    metrics_path: /metrics
-    static_configs:
-      - targets: [ '127.0.0.1:15692' ]
-        labels:
-          instance: crypto-scout-mq
-```
+- AMQP: `crypto-scout-mq:5672` or `crypto_scout_mq:5672`
+- Streams: `crypto-scout-mq:5552` or `crypto_scout_mq:5552`
 
-If Prometheus runs remotely, keep 15692 bound to loopback and scrape via an SSH tunnel or a reverse proxy with TLS/auth.
+The Streams advertised address is configured for inter-container connectivity:
 
-## External access (Streams advertised host/port)
-
-When clients connect from outside the host or across NAT, the Streams protocol requires a routable advertised address.
-
-- Default advertised address (for inter-container connectivity on the Podman network):
-    - Host: `crypto_scout_mq`
-    - Port: `5552`
-- For public/external clients, edit `rabbitmq/rabbitmq.conf` and set:
-  ```ini
-  stream.advertised_host = <public-dns-or-ip>
-  stream.advertised_port = <public-port>
-  ```
-  Then restart the service and ensure your firewall/NAT exposes the Streams port (default `5552`).
-
-Verification checklist:
-
-- Management UI: `http://<public-host>:15672/`
-- Metrics: `http://<public-host>:15692/metrics`
-- Streams client can connect to `<public-host>:<port>` and does not get redirected to `localhost`.
+- Host: `crypto_scout_mq`
+- Port: `5552`
 
 ## Security and credentials
 
@@ -76,30 +53,28 @@ Verification checklist:
 ## Streams and queues (from `rabbitmq/definitions.json`)
 
 - Streams:
-    - `bybit-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
+    - `bybit-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `bybit-ta-crypto-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
+    - `bybit-ta-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
-    - `bybit-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
-      `x-stream-max-segment-size-bytes=100MB`).
-    - `cmc-parser-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
+    - `crypto-scout-stream` (durable, `x-queue-type: stream`, `x-max-age=1D`, `x-max-length-bytes=2GB`,
       `x-stream-max-segment-size-bytes=100MB`).
 - Classic queues:
-    - `collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
-    - `chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
-    - `analyst-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`).
+    - `collector-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`, DLX routing).
+    - `chatbot-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`, DLX routing).
+    - `analyst-queue` (durable, TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`, DLX routing).
+    - `dlx-queue` (durable, TTL=7d, lazy mode) — dead-letter queue for failed messages.
 - Exchanges:
-    - `bybit-exchange` (direct)
-    - `crypto-scout-exchange` (direct)
-    - `parser-exchange` (direct)
+    - `crypto-scout-exchange` (direct) — main exchange for all routing.
+    - `dlx-exchange` (direct) — dead-letter exchange.
 - Bindings:
-    - `bybit-exchange` → `bybit-crypto-stream` with `routing_key=bybit`.
-    - `bybit-exchange` → `bybit-ta-crypto-stream` with `routing_key=bybit-ta`.
-    - `parser-exchange` → `bybit-parser-stream` with `routing_key=bybit-parser`.
-    - `parser-exchange` → `cmc-parser-stream` with `routing_key=cmc-parser`.
+    - `crypto-scout-exchange` → `bybit-stream` with `routing_key=bybit`.
+    - `crypto-scout-exchange` → `bybit-ta-stream` with `routing_key=bybit-ta`.
+    - `crypto-scout-exchange` → `crypto-scout-stream` with `routing_key=crypto-scout`.
     - `crypto-scout-exchange` → `collector-queue` with `routing_key=collector`.
     - `crypto-scout-exchange` → `chatbot-queue` with `routing_key=chatbot`.
     - `crypto-scout-exchange` → `analyst-queue` with `routing_key=analyst`.
+    - `dlx-exchange` → `dlx-queue` with `routing_key=dlx`.
 
 ## Policies
 
@@ -137,8 +112,6 @@ stream.listeners.tcp.1 = 0.0.0.0:5552
 stream.advertised_host = crypto_scout_mq
 stream.advertised_port = 5552
 load_definitions = /etc/rabbitmq/definitions.json
-prometheus.tcp.port = 15692
-prometheus.tcp.ip = 0.0.0.0
 management.tcp.ip = 0.0.0.0
 management.rates_mode = basic
 disk_free_limit.absolute = 2GB
@@ -150,7 +123,7 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 ## Compose highlights (`podman-compose.yml`)
 
 - Image pinned to `4.1.4-management`.
-- Ports: `5672`, `5552`, `15672`, `15692`.
+- Ports: `15672` (localhost only); AMQP/Streams not exposed to host.
 - Resource limits (small profile): `cpus: "2.0"`, `mem_limit: "1g"`, `mem_reservation: "512m"`.
 - Healthcheck and `start_period` for readiness.
 - Volumes for data, config, plugin list, and definitions.
@@ -166,17 +139,17 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 * __Health__: Healthcheck uses `rabbitmq-diagnostics -q ping` with `start_period: 30s`.
 * __Ulimits__: `nofile` set to `65536` to prevent FD exhaustion.
 * __Resource limits__: `cpus="2.0"`, `mem_limit="1g"`, `mem_reservation="512m"` (small production profile in compose).
-* __Networking__: Ports `5672`, `5552`, `15672`, `15692` published and listeners confirmed in logs.
-* __Config__: `rabbitmq/rabbitmq.conf` enables Streams, Prometheus, loads definitions, pins
-  `management.rates_mode=basic` and configures classic peer discovery with the local node (`rabbit@crypto_scout_mq`).
-* __Plugins__: `rabbitmq/enabled_plugins` activates Management, Prometheus, Stream.
+* __Networking__: Port `15672` (localhost); AMQP/Streams container-network only.
+* __Config__: `rabbitmq/rabbitmq.conf` enables Streams, loads definitions, pins `management.rates_mode=basic` and
+  configures classic peer discovery with the local node (`rabbit@crypto_scout_mq`).
+* __Plugins__: `rabbitmq/enabled_plugins` activates Management and Stream.
 * __Definitions__: `rabbitmq/definitions.json` seeds vhost `/`, queues, exchanges, bindings.
-* __Security__: No default users created when loading definitions; create admins via `script/rmq_user.sh`. Erlang cookie
-  provided via `./secret/rabbitmq.env`.
-* __Observability__: Prometheus endpoint on `15692`.
+* __Security__: No users embedded in definitions; create admins via `script/rmq_user.sh`. Erlang cookie provided via
+  `./secret/rabbitmq.env`.
 * __Security hardening__: Compose mounts are read-only, `no-new-privileges`, PID limit, tmpfs `/tmp`.
-* __Backpressure__: Collector and chatbot queues use lazy mode and `reject-publish` overflow to protect the broker under
-  load.
+* __Backpressure__: Collector, chatbot, and analyst queues use lazy mode, `reject-publish` overflow, and DLX routing to
+  protect the broker under load.
+* __Dead-letter handling__: Failed messages route to `dlx-exchange` → `dlx-queue` (TTL=7d) for inspection/reprocessing.
 
 ## Operations
 
@@ -199,7 +172,6 @@ podman network create crypto-scout-bridge
 3) Verify health:
     - `podman ps` (healthy status)
     - UI: http://localhost:15672/
-    - Metrics: `curl -s http://localhost:15692/metrics | head`
 4) Verify resources:
     - Queues/streams/exchanges in Management UI → Queues/Exchanges tabs
     - Stream protocol open on `5552`
@@ -223,7 +195,7 @@ podman network create crypto-scout-bridge
 
 ## User provisioning
 
-Create at least one admin user (definitions do not create users by design):
+Definitions do not include users by design (credentials created separately after first run). Create an administrator:
 
 - __With helper script__ `script/rmq_user.sh`:
 
@@ -251,21 +223,20 @@ Create at least one admin user (definitions do not create users by design):
 - TLS: Consider enabling TLS for AMQP, Management, and Streams in production networks.
 - RBAC: Create per-service users with least privilege (scoped permissions per vhost if you introduce more vhosts).
 - Backups: Persist `/var/lib/rabbitmq` to reliable storage; snapshot or backup regularly.
-- Observability: Scrape `15692/metrics` with Prometheus; build alerts on queue length, unroutable messages, and
-  memory/disk watermarks.
+- Observability: Monitor via Management UI; consider re-enabling Prometheus plugin if metrics scraping is needed.
 - Clustering: This compose is single-node. For HA, deploy multiple nodes and set the same Erlang cookie across nodes,
   plus quorum queues/policies.
 
 ## Compliance with requirements
 
-- Streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream`.
-- Classic queues: `collector-queue`, `chatbot-queue`, `analyst-queue`.
-- Exchanges: `bybit-exchange`, `parser-exchange`, `crypto-scout-exchange`.
-- Bindings and routing keys: `bybit`, `bybit-ta`, `bybit-parser`, `cmc-parser`, plus interservice `collector`,
-  `chatbot`, `analyst`.
-- Dead-letter queue removed: `metrics-dead-letter-queue` no longer used.
-- Production readiness features: version pinning, persistent storage, health check, resource thresholds, metrics,
-  secret-based credentials.
+- Streams: `bybit-stream`, `bybit-ta-stream`, `crypto-scout-stream`.
+- Classic queues: `collector-queue`, `chatbot-queue`, `analyst-queue`, `dlx-queue`.
+- Exchanges: `crypto-scout-exchange` (main), `dlx-exchange` (dead-letter).
+- Bindings and routing keys: `bybit`, `bybit-ta`, `crypto-scout`, `collector`, `chatbot`, `analyst`, `dlx`.
+- Dead-letter infrastructure: `dlx-exchange` → `dlx-queue` for failed message handling.
+- User provisioning: create users after first run via `script/rmq_user.sh`.
+- Production readiness features: version pinning, persistent storage, health check, resource thresholds, secret-based
+  credentials.
 
 ## Metrics streams migration (2025-10-04)
 
@@ -570,3 +541,61 @@ Create at least one admin user (definitions do not create users by design):
       host/container log rotation as needed.
 
 No additional code changes are required for production readiness at this time.
+
+## Topology update and Prometheus removal (2025-12-10)
+
+- **Objective**
+
+  Simplify the messaging topology to a unified exchange model, add dead-letter infrastructure, and remove Prometheus
+  plugin/configuration.
+
+- **Changes**
+
+    - **Topology consolidation**:
+        - Unified to single main exchange: `crypto-scout-exchange` (direct).
+        - Streams renamed: `bybit-stream`, `bybit-ta-stream`, `crypto-scout-stream`.
+        - Removed exchanges: `bybit-exchange`, `parser-exchange`.
+        - Removed streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream`.
+    - **Dead-letter infrastructure**:
+        - Added `dlx-exchange` (direct) and `dlx-queue` (TTL=7d, lazy mode).
+        - Classic queues (`collector-queue`, `chatbot-queue`, `analyst-queue`) now route to DLX on rejection/expiry.
+    - **User provisioning**:
+        - Users not embedded in definitions; create after first run via `script/rmq_user.sh`.
+    - **Prometheus removal**:
+        - Removed `rabbitmq_prometheus` from `rabbitmq/enabled_plugins`.
+        - Removed `prometheus.tcp.port` and `prometheus.tcp.ip` from `rabbitmq/rabbitmq.conf`.
+        - Removed port `15692` mapping from `podman-compose.yml`.
+
+- **Routing keys**
+
+    - `bybit` → `bybit-stream`
+    - `bybit-ta` → `bybit-ta-stream`
+    - `crypto-scout` → `crypto-scout-stream`
+    - `collector` → `collector-queue`
+    - `chatbot` → `chatbot-queue`
+    - `analyst` → `analyst-queue`
+    - `dlx` → `dlx-queue`
+
+- **Producers and consumers**
+
+    - All producers publish to `crypto-scout-exchange` with appropriate routing keys.
+    - Stream consumers use Streams protocol on `:5552`; choose group/offset strategy (earliest/latest).
+    - Queue consumers use AMQP with `prefetch` and explicit acks.
+
+- **Migration and rollout**
+
+    1. Stop the broker: `./script/rmq_compose.sh down`.
+    2. Remove existing data directory if topology changes require clean state: `rm -rf ./data/rabbitmq`.
+    3. Apply updated configuration files.
+    4. Start the broker: `./script/rmq_compose.sh up -d`.
+    5. Verify topology in Management UI.
+    6. Retarget producers/consumers to new routing keys.
+
+- **Verification**
+
+    - Management UI → Exchanges: verify `crypto-scout-exchange` and `dlx-exchange` exist.
+    - Management UI → Queues: verify streams (`bybit-stream`, `bybit-ta-stream`, `crypto-scout-stream`) and queues
+      (`collector-queue`, `chatbot-queue`, `analyst-queue`, `dlx-queue`) exist.
+    - Publish test messages with each routing key and confirm delivery.
+    - Verify Streams listener on `:5552` is reachable.
+    - Confirm port `15692` is no longer exposed: `podman port crypto-scout-mq`.

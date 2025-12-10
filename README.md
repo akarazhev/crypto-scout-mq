@@ -1,27 +1,25 @@
 # crypto-scout-mq
 
-Production-ready RabbitMQ service for the crypto-scout stack (AMQP + Streams + Prometheus), deployed via Podman Compose
+Production-ready RabbitMQ service for the crypto-scout stack (AMQP + Streams), deployed via Podman Compose
 with a pre-provisioned messaging topology.
 
 ## Features
 
 - RabbitMQ 4.1.4-management image
-- Enabled plugins: management, prometheus, stream (`rabbitmq/enabled_plugins`)
+- Enabled plugins: management, stream (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
-    - Exchanges: `bybit-exchange`, `crypto-scout-exchange`, `parser-exchange` (direct)
-    - Streams: `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream` (durable,
-      `x-queue-type: stream`)
-    - Queues: `collector-queue`, `chatbot-queue`, `analyst-queue`
-    - Bindings: `bybit`, `bybit-ta`, `collector`, `chatbot`, `analyst`, `bybit-parser`, `cmc-parser`
-- Stream retention: `x-max-age=7D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
+    - Exchanges: `crypto-scout-exchange`, `dlx-exchange` (direct)
+    - Streams: `bybit-stream`, `bybit-ta-stream`, `crypto-scout-stream` (durable, `x-queue-type: stream`)
+    - Queues: `collector-queue`, `chatbot-queue`, `analyst-queue`, `dlx-queue`
+    - Bindings: `bybit`, `bybit-ta`, `crypto-scout`, `collector`, `chatbot`, `analyst`, `dlx`
+- Stream retention: `x-max-age=1D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
   segment; operator policies can override queue arguments)
-- Prometheus metrics on `:15692/metrics`
+- Dead-letter exchange (`dlx-exchange`) with `dlx-queue` for failed message handling
 - Graceful shutdown
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
   `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
-- Collector, chatbot, analyst queues hardened: lazy mode and `reject-publish` overflow for `collector-queue`,
-  `chatbot-queue`, and `analyst-queue`
+- Collector, chatbot, analyst queues hardened: lazy mode, `reject-publish` overflow, and dead-letter routing
 - Stream retention enforced via policy `stream-retention` for `.*-stream$` queues
 
 ## Repository layout
@@ -82,12 +80,11 @@ podman compose -f podman-compose.yml up -d
 3) Verify:
 
 - Management UI: http://localhost:15672/
-- Metrics: `curl -s http://localhost:15692/metrics | head`
 - Health: `podman ps` should show the container as healthy
 
-## Provision an admin user
+## Provision users
 
-Definitions do not include users by design. Create an administrator:
+Definitions do not include users by design (credentials created separately after first run). Create an administrator:
 
 ```bash
 ./script/rmq_user.sh -u admin -p 'changeMeStrong!' -t administrator -y
@@ -153,8 +150,6 @@ stream.listeners.tcp.1 = 0.0.0.0:5552
 stream.advertised_host = crypto_scout_mq
 stream.advertised_port = 5552
 load_definitions = /etc/rabbitmq/definitions.json
-prometheus.tcp.port = 15692
-prometheus.tcp.ip = 0.0.0.0
 management.tcp.ip = 0.0.0.0
 management.rates_mode = basic
 disk_free_limit.absolute = 2GB
@@ -165,48 +160,19 @@ cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 
 ## Ports
 
-- 5672: AMQP
-- 5552: Streams
-- 15672: Management UI
-- 15692: Prometheus metrics
+- 5672: AMQP (container network only)
+- 5552: Streams (container network only)
+- 15672: Management UI (localhost only)
 
-## Prometheus scrape example
+## Container networking
 
-If Prometheus runs on the same host (recommended with loopback bindings), add a job like:
+AMQP (5672) and Streams (5552) are **not exposed to the host** — only to containers on the `crypto-scout-bridge`
+network. Other services connect via:
 
-```yaml
-scrape_configs:
-  - job_name: rabbitmq
-    metrics_path: /metrics
-    static_configs:
-      - targets: [ '127.0.0.1:15692' ]
-        labels:
-          instance: crypto-scout-mq
-```
+- AMQP: `crypto-scout-mq:5672` or `crypto_scout_mq:5672`
+- Streams: `crypto-scout-mq:5552` or `crypto_scout_mq:5552`
 
-If Prometheus runs remotely, keep 15692 bound to loopback and scrape via an SSH tunnel or a reverse proxy with TLS/auth.
-
-## External access (Streams advertised host/port)
-
-By default, the Streams advertised address is set for inter-container connectivity on the Podman network:
-
-- Host: `crypto_scout_mq`
-- Port: `5552`
-
-For clients outside the host (public access or across NAT), edit `rabbitmq/rabbitmq.conf` and set:
-
-```ini
-stream.advertised_host = <public-dns-or-ip>
-stream.advertised_port = <public-port>
-```
-
-Then restart the service. Ensure your firewall/NAT exposes the Streams port (default `5552`).
-
-Verification:
-
-- Management UI: http://<public-host>:15672/
-- Metrics:      http://<public-host>:15692/metrics
-- Streams:      connect a Streams client to `<public-host>:<port>` and confirm it does not redirect to `localhost`.
+Management UI is exposed to localhost only (`127.0.0.1:15672`).
 
 ## Persistence and backups
 
@@ -223,10 +189,11 @@ Verification:
 
 ## Security notes
 
-- Management UI (15672) and Prometheus (15692) are bound to loopback via compose (`127.0.0.1:<port>:<port>`). For
-  remote access, use an SSH tunnel or place a reverse proxy with TLS and auth in front.
+- **No host-exposed AMQP/Streams ports**: Only containers on `crypto-scout-bridge` can reach 5672/5552.
+- **Management UI (15672)** is bound to loopback (`127.0.0.1`). For remote access, use an SSH tunnel or reverse proxy
+  with TLS and auth.
 - Keep `./secret/rabbitmq.env` out of version control; rotate the Erlang cookie per environment.
-- Create per-service users with least-privilege permissions.
+- Create per-service users with scoped permissions after first run (see `script/rmq_user.sh`).
 
 ## Troubleshooting
 

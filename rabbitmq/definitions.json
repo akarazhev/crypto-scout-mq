@@ -11,6 +11,7 @@
       "tags": [],
       "metadata": {
         "description": "Default virtual host",
+        "default_queue_type": "classic",
         "tags": []
       }
     }
@@ -35,7 +36,7 @@
   ],
   "queues": [
     {
-      "name": "bybit-crypto-stream",
+      "name": "bybit-stream",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -47,7 +48,7 @@
       }
     },
     {
-      "name": "bybit-ta-crypto-stream",
+      "name": "bybit-ta-stream",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -59,7 +60,7 @@
       }
     },
     {
-      "name": "bybit-parser-stream",
+      "name": "crypto-scout-stream",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -79,7 +80,9 @@
         "x-max-length": 2500,
         "x-message-ttl": 21600000,
         "x-queue-mode": "lazy",
-        "x-overflow": "reject-publish"
+        "x-overflow": "reject-publish",
+        "x-dead-letter-exchange": "dlx-exchange",
+        "x-dead-letter-routing-key": "dlx"
       }
     },
     {
@@ -91,7 +94,9 @@
         "x-max-length": 2500,
         "x-message-ttl": 21600000,
         "x-queue-mode": "lazy",
-        "x-overflow": "reject-publish"
+        "x-overflow": "reject-publish",
+        "x-dead-letter-exchange": "dlx-exchange",
+        "x-dead-letter-routing-key": "dlx"
       }
     },
     {
@@ -103,43 +108,34 @@
         "x-max-length": 2500,
         "x-message-ttl": 21600000,
         "x-queue-mode": "lazy",
-        "x-overflow": "reject-publish"
+        "x-overflow": "reject-publish",
+        "x-dead-letter-exchange": "dlx-exchange",
+        "x-dead-letter-routing-key": "dlx"
       }
     },
     {
-      "name": "cmc-parser-stream",
+      "name": "dlx-queue",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
       "arguments": {
-        "x-max-length-bytes": 2000000000,
-        "x-max-age": "1D",
-        "x-queue-type": "stream",
-        "x-stream-max-segment-size-bytes": 100000000
+        "x-message-ttl": 604800000,
+        "x-queue-mode": "lazy"
       }
     }
   ],
   "exchanges": [
     {
-      "name": "parser-exchange",
-      "vhost": "/",
-      "type": "direct",
-      "durable": true,
-      "auto_delete": false,
-      "internal": false,
-      "arguments": {}
-    },
-    {
-      "name": "bybit-exchange",
-      "vhost": "/",
-      "type": "direct",
-      "durable": true,
-      "auto_delete": false,
-      "internal": false,
-      "arguments": {}
-    },
-    {
       "name": "crypto-scout-exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "dlx-exchange",
       "vhost": "/",
       "type": "direct",
       "durable": true,
@@ -174,35 +170,35 @@
       "arguments": {}
     },
     {
-      "source": "bybit-exchange",
+      "source": "crypto-scout-exchange",
       "vhost": "/",
-      "destination": "bybit-crypto-stream",
+      "destination": "bybit-stream",
       "destination_type": "queue",
       "routing_key": "bybit",
       "arguments": {}
     },
     {
-      "source": "bybit-exchange",
+      "source": "crypto-scout-exchange",
       "vhost": "/",
-      "destination": "bybit-ta-crypto-stream",
+      "destination": "bybit-ta-stream",
       "destination_type": "queue",
       "routing_key": "bybit-ta",
       "arguments": {}
     },
     {
-      "source": "parser-exchange",
+      "source": "crypto-scout-exchange",
       "vhost": "/",
-      "destination": "bybit-parser-stream",
+      "destination": "crypto-scout-stream",
       "destination_type": "queue",
-      "routing_key": "bybit-parser",
+      "routing_key": "crypto-scout",
       "arguments": {}
     },
     {
-      "source": "parser-exchange",
+      "source": "dlx-exchange",
       "vhost": "/",
-      "destination": "cmc-parser-stream",
+      "destination": "dlx-queue",
       "destination_type": "queue",
-      "routing_key": "cmc-parser",
+      "routing_key": "dlx",
       "arguments": {}
     }
   ]
