@@ -1,7 +1,8 @@
 # Issue 15: Update queues, exchanges and bindings to make it production ready
 
 In this `crypto-scout-mq` project we are going to update `queues`, `exchanges`, `bindings`, `routing keys` and make it
-production ready. So let's review and update the project configuration with docs to reflect these changes.
+production ready. So let's review and update the project configuration with docs to reflect these changes. Remove
+prometheus configuration from the project.
 
 ## Roles
 
@@ -26,7 +27,9 @@ Take the following roles:
 - As the `expert dev-opts engineer` review the current `crypto-scout-mq` project and update it by updating `queues`,
   `exchanges`, `bindings`, `routing keys` to consume crypto data and interservice communication. Rely on the sample of
   `rabbitmq/definitions.json`.
-- Recheck your proposal and make sure that they are correct and haven't missed any important points.
+- As the `expert dev-opts engineer` remove prometheus configuration from the project.
+- Recheck your proposal and make sure that they are correct and haven't missed any important points. The complete
+  solution should be production ready.
 
 ## Sample of `rabbitmq/definitions.json`
 
