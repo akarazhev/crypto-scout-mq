@@ -125,7 +125,6 @@ RabbitMQ endpoints:
 - Management UI: http://localhost:15672/
 - AMQP: amqp://localhost:5672
 - Streams: localhost:5552
-- Prometheus metrics: http://localhost:15692/metrics
 EOF
 }
 
