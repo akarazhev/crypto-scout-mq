@@ -16,7 +16,7 @@ Take the following roles:
 
 ## Tasks
 
-- As the expert dev-opts engineer review the current `rabbitmq.conf` config and `podman-compose.yml` files in 
+- As the expert dev-opts engineer review the current `rabbitmq.conf` config and `podman-compose.yml` files in
 - `crypto-scout-mq` project and update them to support the external connection to RabbitMQ.
 - As the expert dev-opts engineer recheck your proposal and make sure that they are correct and haven't missed any
   important points.
@@ -34,17 +34,17 @@ Take the following roles:
 ### Changes
 
 - **[`rabbitmq/rabbitmq.conf`]**
-  - `stream.listeners.tcp.1 = 0.0.0.0:5552`
-  - `stream.advertised_host = crypto_scout_mq`
-  - `stream.advertised_port = 5552`
-  - `management.tcp.ip = 0.0.0.0`
+    - `stream.listeners.tcp.1 = 0.0.0.0:5552`
+    - `stream.advertised_host = crypto_scout_mq`
+    - `stream.advertised_port = 5552`
+    - `management.tcp.ip = 0.0.0.0`
 
 - **[`podman-compose.yml`]**
-  - Ports remain published: `5672`, `5552`, `15672`, `15692`.
+    - Management port `15672` bound to loopback; AMQP/Streams ports container-network only.
 
 - **Docs updated**
-  - [`README.md`]: Added "External access" section and updated config highlights.
-  - [`doc/rabbitmq-production-setup.md`]: Added external access guidance, updated config and compose highlights.
+    - [`README.md`]: Added "External access" section and updated config highlights.
+    - [`doc/rabbitmq-production-setup.md`]: Added external access guidance, updated config and compose highlights.
 
 ### How to configure external access
 
@@ -62,10 +62,9 @@ Take the following roles:
 
 ### Verification
 
-- **[Management]** Open `http://<public-host>:15672/`.
-- **[Metrics]** `curl -s http://<public-host>:15692/metrics | head`.
-- **[Streams]** From a client host, ensure `nc -vz <public-host> 5552` succeeds. Use a Streams client to connect to
-  `<public-host>:<port>` and confirm it does not get redirected to `localhost`.
+- **[Management]** Open `http://localhost:15672/`.
+- **[Streams]** From a container on `crypto-scout-bridge`, ensure `nc -vz crypto-scout-mq 5552` succeeds. Use a Streams
+  client to connect and confirm it does not get redirected to `localhost`.
 - **[Logs]** Check container logs for the effective advertised host/port values at startup.
 
 ### Recheck

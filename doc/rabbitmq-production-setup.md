@@ -178,12 +178,11 @@ podman network create crypto-scout-bridge
 
 ## Log verification (2025-10-03)
 
-* __Status__: Server startup complete; 6 plugins started (`rabbitmq_prometheus`, `rabbitmq_stream`,
-  `rabbitmq_management`, `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
-* __Ports/listeners__: AMQP 5672, Streams 5552, Management 15672, Prometheus 15692 listeners started successfully.
-* __Definitions__: vhost `/`, 3 exchanges, 4 queues, and 4 bindings imported from `rabbitmq/definitions.json`.
-* __Streams__: Writer for `crypto-bybit-stream` initialized; osiris log directory created under
-  `/var/lib/rabbitmq/mnesia/.../stream/`.
+* __Status__: Server startup complete; plugins started (`rabbitmq_stream`, `rabbitmq_management`,
+  `rabbitmq_management_agent`, `rabbitmq_web_dispatch`).
+* __Ports/listeners__: AMQP 5672, Streams 5552, Management 15672 listeners started successfully.
+* __Definitions__: vhost `/`, exchanges, queues, and bindings imported from `rabbitmq/definitions.json`.
+* __Streams__: Writer initialized; osiris log directory created under `/var/lib/rabbitmq/mnesia/.../stream/`.
 * __Warnings observed__:
     - Message store indices rebuilt from scratch (expected on first boot or clean data dir).
     - Classic peer discovery message about empty local node list (benign for single-node setups).
@@ -223,7 +222,7 @@ Definitions do not include users by design (credentials created separately after
 - TLS: Consider enabling TLS for AMQP, Management, and Streams in production networks.
 - RBAC: Create per-service users with least privilege (scoped permissions per vhost if you introduce more vhosts).
 - Backups: Persist `/var/lib/rabbitmq` to reliable storage; snapshot or backup regularly.
-- Observability: Monitor via Management UI; consider re-enabling Prometheus plugin if metrics scraping is needed.
+- Observability: Monitor via Management UI; consider enabling Prometheus plugin if metrics scraping is needed.
 - Clustering: This compose is single-node. For HA, deploy multiple nodes and set the same Erlang cookie across nodes,
   plus quorum queues/policies.
 
@@ -290,15 +289,15 @@ Definitions do not include users by design (credentials created separately after
 
 * __Proposed GitHub short description__
 
-  Production-ready RabbitMQ service for the crypto-scout stack (AMQP + Streams + Prometheus), deployed via Podman
-  Compose with a pre-provisioned messaging topology.
+  Production-ready RabbitMQ service for the crypto-scout stack (AMQP + Streams), deployed via Podman Compose with a
+  pre-provisioned messaging topology.
 
 * __What was updated in `README.md`__
 
     - Added a concise project overview and the above short description.
     - Documented features grounded in this repo: image pinning to `rabbitmq:4.1.4-management`, enabled plugins from
-      `rabbitmq/enabled_plugins`, pre-provisioned topology from `rabbitmq/definitions.json`, Prometheus metrics on
-      `:15692/metrics`, healthcheck, raised file descriptors, persistent volume.
+      `rabbitmq/enabled_plugins`, pre-provisioned topology from `rabbitmq/definitions.json`, healthcheck, raised file
+      descriptors, persistent volume.
     - Repository layout, prerequisites (Podman + Compose plugin), quick start with secure Erlang cookie generation, and
       startup commands using `podman compose`.
     - Admin user provisioning using `script/rmq_user.sh` and equivalent manual commands.
@@ -461,8 +460,8 @@ Definitions do not include users by design (credentials created separately after
 
 ## Log verification (2025-10-24)
 
-- **Status**: Server startup complete; 6 plugins started. AMQP/Streams/Management/Prometheus listeners active.
-  Definitions loaded successfully.
+- **Status**: Server startup complete; plugins started. AMQP/Streams/Management listeners active. Definitions loaded
+  successfully.
 - **Errors**: none observed.
 - **Warnings observed** and dispositions:
     - **Erlang cookie override**: expected with `RABBITMQ_ERLANG_COOKIE` supplied via `./secret/rabbitmq.env`.
@@ -472,22 +471,19 @@ Definitions do not include users by design (credentials created separately after
 
 ## Logging remediation (2025-10-24)
 
-- **Objective**: Remove non-actionable warnings at startup and prefer Prometheus for metrics collection.
+- **Objective**: Remove non-actionable warnings at startup.
 - **Changes** (`rabbitmq/rabbitmq.conf`):
     - Add single-node peer discovery:
         - `cluster_formation.peer_discovery_backend = classic_config`
         - `cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq`
 - **Rationale**:
-    - Management UI metrics collection is deprecated; Prometheus on `:15692/metrics` is the primary observability path.
     - Explicit classic peer discovery node suppresses a benign warning on first boot in single-node setups.
 - **Verification**:
     1. Restart the service: `./script/rmq_compose.sh restart`.
-    2. Check logs: `./script/rmq_compose.sh logs -n 200` — no management deprecation warning; no peer discovery node
-       list warning; listeners active; definitions applied.
-    3. Validate metrics: `curl -s http://localhost:15692/metrics | head`.
+    2. Check logs: `./script/rmq_compose.sh logs -n 200` — no peer discovery node list warning; listeners active;
+       definitions applied.
 - **Impact**:
-    - Management UI may show limited/less granular rates; Prometheus remains available. Keep
-      `management.rates_mode=basic` for UI responsiveness.
+    - Keep `management.rates_mode=basic` for UI responsiveness.
 
 ## Configuration review (2025-10-25)
 
@@ -495,14 +491,14 @@ Definitions do not include users by design (credentials created separately after
 - **[reviewed files]** `podman-compose.yml`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json`,
   `rabbitmq/enabled_plugins`, `secret/README.md`, `secret/rabbitmq.env.example`.
 - **[strengths]** Version pinning (`rabbitmq:4.1.4-management`), persistent storage, healthcheck with start period,
-  file descriptors `nofile=65536`, graceful shutdown, Streams retention policy, Prometheus metrics, read-only config
-  mounts, `no-new-privileges`, PID limit, and tmpfs for `/tmp`.
+  file descriptors `nofile=65536`, graceful shutdown, Streams retention policy, read-only config mounts,
+  `no-new-privileges`, PID limit, and tmpfs for `/tmp`.
 - **[security model]** No users embedded in definitions. Provision admin/service users post-deploy via
   `script/rmq_user.sh` and delete `guest`.
 
 - **[recommendations]** Optional hardening and operational enhancements:
-    - Restrict Management and Prometheus exposure if not needed publicly:
-        - Map to loopback in `podman-compose.yml`: `127.0.0.1:15672:15672`, `127.0.0.1:15692:15692`.
+    - Restrict Management exposure if not needed publicly:
+        - Map to loopback in `podman-compose.yml`: `127.0.0.1:15672:15672`.
         - Or set `management.tcp.ip = 127.0.0.1` and front with a reverse proxy (TLS + auth) for remote access.
     - Resource constraints: add CPU/memory limits in `podman-compose.yml` per host capacity and SLOs.
     - Extra hardening: consider `cap_drop: ["ALL"]` (works with non-privileged ports), and `read_only: true` with
@@ -515,30 +511,28 @@ Definitions do not include users by design (credentials created separately after
       and workload profile.
 
 - **[recheck]** No blocking issues found. The deployment meets production-readiness goals for a single-node broker with
-  Prometheus observability and pre-provisioned topology.
+  pre-provisioned topology.
 
 ## Solution review (2025-10-27)
 
-- **[verdict]** Ready for production (single-node) with AMQP + Streams + Prometheus.
+- **[verdict]** Ready for production (single-node) with AMQP + Streams.
 - **[what changed]** Documentation now includes the external Podman network prerequisite and expanded quick start/ops.
 - **[validated]**
     - Image pinning: `rabbitmq:4.1.4-management` in `podman-compose.yml`.
-    - Plugins: `rabbitmq_management`, `rabbitmq_prometheus`, `rabbitmq_stream` in `rabbitmq/enabled_plugins`.
-    - Exchanges are `direct` in `rabbitmq/definitions.json` (`bybit-exchange`, `parser-exchange`,
-      `crypto-scout-exchange`).
+    - Plugins: `rabbitmq_management`, `rabbitmq_stream` in `rabbitmq/enabled_plugins`.
+    - Exchanges are `direct` in `rabbitmq/definitions.json` (`crypto-scout-exchange`, `dlx-exchange`).
     - Streams and classic queues configured with retention/TTL/backpressure as listed above.
     - Streams external access documented via `stream.advertised_host/port` in `rabbitmq/rabbitmq.conf`.
 - **[recommendations]** Optional hardening and ops enhancements to consider per environment:
-    - Network exposure: keep Management (15672) and Prometheus (15692) on loopback; use SSH tunnel or reverse proxy with
-      TLS/auth if remote access is required.
+    - Network exposure: keep Management (15672) on loopback; use SSH tunnel or reverse proxy with TLS/auth if remote
+      access is required.
     - TLS: enable TLS for AMQP/Streams/Management on untrusted networks.
     - Container hardening: evaluate `cap_drop: ["ALL"]` and `read_only: true` with explicit writable mounts (
       `/var/lib/rabbitmq`, tmpfs `/tmp`). Test thoroughly.
     - Resource tuning: adjust `cpus`, `mem_limit`, `disk_free_limit.absolute`, and `vm_memory_high_watermark.relative`
       to match workload and host capacity.
     - Backups: schedule regular snapshots of `./data/rabbitmq` and perform restore drills.
-    - Logs: rely on Prometheus for metrics; keep `management.rates_mode=basic` for UI responsiveness. Configure
-      host/container log rotation as needed.
+    - Logs: keep `management.rates_mode=basic` for UI responsiveness. Configure host/container log rotation as needed.
 
 No additional code changes are required for production readiness at this time.
 

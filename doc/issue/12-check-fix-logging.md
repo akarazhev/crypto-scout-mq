@@ -22,8 +22,8 @@ Take the following roles:
 
 ## Tasks
 
-- As the `expert dev-opts engineer` check and fix `error` and `warning` messages in logs to be sure that the project is 
-  ready for production and there are no issues. 
+- As the `expert dev-opts engineer` check and fix `error` and `warning` messages in logs to be sure that the project is
+  ready for production and there are no issues.
 - As the `expert dev-opts engineer` recheck your proposal and make sure that they are correct and haven't missed any
   important points.
 - As the `expert technical writer` update the `README.md` and `rabbitmq-production-setup.md` files with your results.
@@ -65,20 +65,12 @@ Take the following roles:
 Expected results:
 
 - No classic peer discovery warning about missing local node.
-- Listeners active on `5672`, `5552`, `15672`, `15692`.
+- Listeners active on `5672`, `5552`, `15672`.
 - Definitions imported without errors.
-
-3) Validate Prometheus endpoint:
-
-```bash
-curl -s http://localhost:15692/metrics | head
-```
 
 ## Impact and notes
 
-- Management UI may display limited/less granular rates since its metrics collection is disabled;
-  `management.rates_mode=basic` remains for responsiveness.
-- Prometheus is the primary observability path; dashboards/alerts should be built off `:15692/metrics`.
+- `management.rates_mode=basic` remains for responsiveness.
 - The Erlang cookie override message remains informational and expected.
 - Index rebuild warning is expected only on first boot or when data directory is clean.
 
@@ -89,5 +81,4 @@ curl -s http://localhost:15692/metrics | head
 
 ## Status
 
-- Resolved. Startup is clean of actionable warnings; system ready for production with Prometheus as the source of truth
-  for metrics.
+- Resolved. Startup is clean of actionable warnings; system ready for production.

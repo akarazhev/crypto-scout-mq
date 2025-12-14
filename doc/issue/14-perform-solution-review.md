@@ -35,8 +35,7 @@ Take the following roles:
 
 ### Verdict
 
-- **Ready for production (single-node)**. The deployment is production-ready for a standalone broker with Streams and
-  Prometheus.
+- **Ready for production (single-node)**. The deployment is production-ready for a standalone broker with Streams.
 
 ### Scope reviewed
 
@@ -49,20 +48,20 @@ Take the following roles:
 ### Findings (grounded in repo)
 
 - **Image pinning**: `rabbitmq:4.1.4-management` in `podman-compose.yml`.
-- **Plugins**: `rabbitmq_management`, `rabbitmq_prometheus`, `rabbitmq_stream` in `rabbitmq/enabled_plugins`.
+- **Plugins**: `rabbitmq_management`, `rabbitmq_stream` in `rabbitmq/enabled_plugins`.
 - **Streams and queues**: Retention policy `stream-retention` for `.*-stream$`. Classic queues (`collector-queue`,
   `chatbot-queue`, `analyst-queue`) hardened with TTL=6h, max length 2500, lazy mode, `x-overflow=reject-publish`.
-- **Exchanges**: Direct type for `bybit-exchange`, `parser-exchange`, `crypto-scout-exchange`.
+- **Exchanges**: Direct type for `crypto-scout-exchange`, `dlx-exchange`.
 - **Security/operability**: Read-only config mounts, `no-new-privileges`, tmpfs `/tmp`, `pids_limit`,
   `stop_grace_period=1m`, healthcheck.
-- **Ports**: Management and Prometheus bound to loopback; Streams and AMQP exposed as required.
+- **Ports**: Management bound to loopback; Streams and AMQP container-network only.
 - **External network**: `podman-compose.yml` uses external network `crypto-scout-bridge` (now documented).
 - **Streams external access**: `stream.listeners.tcp.1`, `stream.advertised_host`, `stream.advertised_port` set in
   `rabbitmq/rabbitmq.conf`.
 
 ### Optimizations and recommendations (optional)
 
-- **Network exposure**: Keep 15672/15692 loopback-only; use SSH tunnel or reverse proxy with TLS/auth for remote access.
+- **Network exposure**: Keep 15672 loopback-only; use SSH tunnel or reverse proxy with TLS/auth for remote access.
 - **TLS**: Enable TLS for AMQP/Streams/Management when traversing untrusted networks.
 - **Container hardening**: Consider `cap_drop: ["ALL"]` and `read_only: true` with explicit writable mounts (
   `/var/lib/rabbitmq`, tmpfs `/tmp`); test thoroughly.

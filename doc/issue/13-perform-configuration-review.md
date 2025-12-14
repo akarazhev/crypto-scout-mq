@@ -35,8 +35,7 @@ Take the following roles:
 
 - **[configs reviewed]** `podman-compose.yml`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json`,
   `rabbitmq/enabled_plugins`, `secret/README.md`, `secret/rabbitmq.env.example`.
-- **[observability]** Prometheus metrics exposed on `:15692`; management UI `:15672`; Streams listener `:5552` with
-  static advertised host/port.
+- **[observability]** Management UI `:15672`; Streams listener `:5552` with static advertised host/port.
 - **[topology]** Streams and classic queues match `rabbitmq/definitions.json`; retention policy `stream-retention` in
   place; hardened classic queues (`lazy`, `reject-publish`).
 - **[reliability]** Healthcheck configured; persistent volume; ulimit `nofile=65536`; graceful shutdown.
@@ -49,8 +48,8 @@ Take the following roles:
 
 ### Recommendations (optional hardening)
 
-- **[restrict exposure]** If not needed publicly, bind management and metrics to loopback in `podman-compose.yml`:
-  `127.0.0.1:15672:15672`, `127.0.0.1:15692:15692`, or set `management.tcp.ip = 127.0.0.1` and front with TLS proxy.
+- **[restrict exposure]** If not needed publicly, bind management to loopback in `podman-compose.yml`:
+  `127.0.0.1:15672:15672`, or set `management.tcp.ip = 127.0.0.1` and front with TLS proxy.
 - **[resource limits]** Add CPU/memory limits in `podman-compose.yml` per host capacity.
 - **[extra hardening]** Consider `cap_drop: ["ALL"]` (non-privileged ports), `read_only: true` with explicit writable
   mounts for `/var/lib/rabbitmq` and tmpfs for `/tmp` (validate before enabling).
