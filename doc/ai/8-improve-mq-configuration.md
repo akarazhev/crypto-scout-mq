@@ -80,8 +80,8 @@ networks:
     - Mount `rabbitmq/enabled_plugins`, `rabbitmq/rabbitmq.conf`, `rabbitmq/definitions.json` as read-only.
     - Add `security_opt: [no-new-privileges=true]`, `init: true`, `pids_limit: 1024`,
       `stop_signal: SIGTERM`, `tmpfs: /tmp`.
-    - Keep data volume `./data/rabbitmq:/var/lib/rabbitmq` and published ports `5672`, `5552`, `15672`, `15692`
-      unchanged.
+    - Keep data volume `./data/rabbitmq:/var/lib/rabbitmq`; Management port `15672` bound to loopback; AMQP/Streams
+      ports container-network only.
 
 - **[Topology improvements]** Updated `rabbitmq/definitions.json`:
     - Added policy `stream-retention` for queues matching `.*-stream$` to enforce retention: `max-length-bytes=2GB`,
@@ -91,7 +91,7 @@ networks:
     - Hardened `collector-queue` with `x-queue-mode=lazy` and `x-overflow=reject-publish`.
 
 - **[Config validation]** `rabbitmq/rabbitmq.conf` already production-safe (Streams listener and advertised host/port;
-  Prometheus and Management listeners; disk/memory watermarks).
+  Management listener; disk/memory watermarks).
 
 - **[Docs updated]**
     - `README.md`: Features list documents hardening, collector queue, and retention policy.
@@ -99,13 +99,14 @@ networks:
 
 ### Recheck
 
-- **Security**: Config mounts are read-only; `no-new-privileges`; PID limit; tmpfs for `/tmp`. Delete the default `guest`
+- **Security**: Config mounts are read-only; `no-new-privileges`; PID limit; tmpfs for `/tmp`. Delete the default
+  `guest`
   user after provisioning.
 - **Reliability**: Disk and memory watermarks configured; healthcheck present; graceful shutdown.
 - **Streams**: Streams listener and advertised address configured; retention consistent via policy; stream port `5552`
   exposed.
 - **Backpressure**: Collector queue uses lazy mode and rejects publish on overflow.
-- **Observability**: Prometheus `:15692`; Management `:15672`.
+- **Observability**: Management `:15672`.
 
 ### Next steps
 

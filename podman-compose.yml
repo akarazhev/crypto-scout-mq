@@ -1,15 +1,10 @@
-version: "3.9"
-
 services:
   crypto-scout-mq:
     image: rabbitmq:4.1.4-management
     container_name: crypto-scout-mq
     hostname: crypto_scout_mq
     ports:
-      - "5672:5672"   # AMQP protocol
       - "127.0.0.1:15672:15672" # Management UI (loopback only)
-      - "5552:5552"   # Stream protocol (required for RabbitMQ streams)
-      - "127.0.0.1:15692:15692" # Prometheus metrics (loopback only)
     volumes:
       - "./data/rabbitmq:/var/lib/rabbitmq"
       - "./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro"
@@ -19,9 +14,9 @@ services:
       - ./secret/rabbitmq.env
     environment:
       TZ: UTC
-    cpus: "2.0"
-    mem_limit: "1g"
-    mem_reservation: "512m"
+    cpus: "1.0"
+    mem_limit: "256m"
+    mem_reservation: "128m"
     networks:
       - crypto-scout-bridge
     healthcheck:

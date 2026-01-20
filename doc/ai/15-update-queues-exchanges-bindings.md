@@ -252,3 +252,75 @@ Take the following roles:
   ]
 }
 ```
+
+## Status
+
+**Completed** (2025-12-10)
+
+## Implementation summary
+
+### Files modified
+
+- `@/Users/andrey.karazhev/Developer/startups/crypto-scout/crypto-scout-mq/rabbitmq/definitions.json` — replaced with
+  new topology
+- `@/Users/andrey.karazhev/Developer/startups/crypto-scout/crypto-scout-mq/rabbitmq/rabbitmq.conf` — removed Prometheus
+  configuration
+- `@/Users/andrey.karazhev/Developer/startups/crypto-scout/crypto-scout-mq/rabbitmq/enabled_plugins` — removed
+  `rabbitmq_prometheus`
+- `@/Users/andrey.karazhev/Developer/startups/crypto-scout/crypto-scout-mq/podman-compose.yml` — removed port `15692`
+- `@/Users/andrey.karazhev/Developer/startups/crypto-scout/crypto-scout-mq/README.md` — updated documentation
+- `@/Users/andrey.karazhev/Developer/startups/crypto-scout/crypto-scout-mq/doc/rabbitmq-production-setup.md` — updated
+  documentation
+
+### Topology changes
+
+| Component | Before                                                                                      | After                                                            |
+|-----------|---------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| Exchanges | `bybit-exchange`, `parser-exchange`, `crypto-scout-exchange`                                | `crypto-scout-exchange`, `dlx-exchange`                          |
+| Streams   | `bybit-crypto-stream`, `bybit-ta-crypto-stream`, `bybit-parser-stream`, `cmc-parser-stream` | `bybit-stream`, `bybit-ta-stream`, `crypto-scout-stream`         |
+| Queues    | `collector-queue`, `chatbot-queue`, `analyst-queue`                                         | `collector-queue`, `chatbot-queue`, `analyst-queue`, `dlx-queue` |
+| User      | None                                                                                        | None (create after first run)                                    |
+| DLX       | None                                                                                        | `dlx-exchange` → `dlx-queue`                                     |
+
+### Prometheus removal and port security
+
+| File                 | Change                                                                        |
+|----------------------|-------------------------------------------------------------------------------|
+| `enabled_plugins`    | Removed `rabbitmq_prometheus`                                                 |
+| `rabbitmq.conf`      | Removed `prometheus.tcp.port` and `prometheus.tcp.ip`                         |
+| `podman-compose.yml` | Removed ports `5672`, `5552`, `15692`; only `127.0.0.1:15672` exposed to host |
+
+### Routing keys
+
+| Routing Key    | Destination           |
+|----------------|-----------------------|
+| `bybit`        | `bybit-stream`        |
+| `bybit-ta`     | `bybit-ta-stream`     |
+| `crypto-scout` | `crypto-scout-stream` |
+| `collector`    | `collector-queue`     |
+| `chatbot`      | `chatbot-queue`       |
+| `analyst`      | `analyst-queue`       |
+| `dlx`          | `dlx-queue`           |
+
+## Verification
+
+```bash
+# Start the broker
+./script/rmq_compose.sh up -d
+
+# Check health
+podman ps
+
+# Verify topology in Management UI
+open http://localhost:15672/
+
+# Confirm Prometheus port is not exposed
+podman port crypto-scout-mq
+```
+
+## Notes
+
+- All producers now publish to `crypto-scout-exchange` with appropriate routing keys.
+- Classic queues have dead-letter routing to `dlx-exchange` for failed message handling.
+- Stream retention policy `stream-retention` applies to all `*-stream` queues (1D max-age, 2GB max-length).
+- Users not embedded in definitions; create after first run via `script/rmq_user.sh`.
