@@ -48,18 +48,6 @@
       }
     },
     {
-      "name": "bybit-ta-stream",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-max-length-bytes": 2000000000,
-        "x-max-age": "1D",
-        "x-queue-type": "stream",
-        "x-stream-max-segment-size-bytes": 100000000
-      }
-    },
-    {
       "name": "crypto-scout-stream",
       "vhost": "/",
       "durable": true,
@@ -87,20 +75,6 @@
     },
     {
       "name": "chatbot-queue",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-max-length": 2500,
-        "x-message-ttl": 21600000,
-        "x-queue-mode": "lazy",
-        "x-overflow": "reject-publish",
-        "x-dead-letter-exchange": "dlx-exchange",
-        "x-dead-letter-routing-key": "dlx"
-      }
-    },
-    {
-      "name": "analyst-queue",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -164,25 +138,9 @@
     {
       "source": "crypto-scout-exchange",
       "vhost": "/",
-      "destination": "analyst-queue",
-      "destination_type": "queue",
-      "routing_key": "analyst",
-      "arguments": {}
-    },
-    {
-      "source": "crypto-scout-exchange",
-      "vhost": "/",
       "destination": "bybit-stream",
       "destination_type": "queue",
       "routing_key": "bybit",
-      "arguments": {}
-    },
-    {
-      "source": "crypto-scout-exchange",
-      "vhost": "/",
-      "destination": "bybit-ta-stream",
-      "destination_type": "queue",
-      "routing_key": "bybit-ta",
       "arguments": {}
     },
     {

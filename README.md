@@ -9,9 +9,9 @@ with a pre-provisioned messaging topology.
 - Enabled plugins: management, stream (`rabbitmq/enabled_plugins`)
 - Pre-provisioned topology via `rabbitmq/definitions.json`:
     - Exchanges: `crypto-scout-exchange`, `dlx-exchange` (direct)
-    - Streams: `bybit-stream`, `bybit-ta-stream`, `crypto-scout-stream` (durable, `x-queue-type: stream`)
-    - Queues: `collector-queue`, `chatbot-queue`, `analyst-queue`, `dlx-queue`
-    - Bindings: `bybit`, `bybit-ta`, `crypto-scout`, `collector`, `chatbot`, `analyst`, `dlx`
+    - Streams: `bybit-stream`, `crypto-scout-stream` (durable, `x-queue-type: stream`)
+    - Queues: `collector-queue`, `chatbot-queue`, `dlx-queue`
+    - Bindings: `bybit`, `crypto-scout`, `collector`, `chatbot`, `dlx`
 - Stream retention: `x-max-age=1D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
   segment; operator policies can override queue arguments)
 - Dead-letter exchange (`dlx-exchange`) with `dlx-queue` for failed message handling
