@@ -30,7 +30,6 @@ with a pre-provisioned messaging topology.
 - `script/rmq_user.sh` — helper to create/update users and permissions
 - `script/rmq_compose.sh` — production runner to manage Podman Compose (up/down/logs/status/wait)
 - `script/network.sh` — helper to create the external Podman network `crypto-scout-bridge`
-- `doc/` — production setup notes and guides
 
 ## Prerequisites
 
