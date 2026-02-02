@@ -180,10 +180,10 @@ Management UI is exposed to localhost only (`127.0.0.1:15672`).
 
 ## Resource limits
 
-- Small production profile in `podman-compose.yml`:
-    - `cpus: "2.0"`
-    - `mem_limit: "1g"`
-    - `mem_reservation: "512m"`
+- Resource limits in `podman-compose.yml`:
+    - `cpus: "1.0"`
+    - `mem_limit: "256m"`
+    - `mem_reservation: "128m"`
 - Tune these under `services.crypto-scout-mq` based on host capacity and SLOs.
 
 ## Security notes

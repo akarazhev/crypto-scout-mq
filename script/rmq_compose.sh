@@ -86,7 +86,7 @@ detect_compose() {
 
 compose() {
   # shellcheck disable=SC2068
-  "${COMPOSE_CMD[@]}" -f "$COMPOSE_FILE" $@
+  "${COMPOSE_CMD[@]}" -f "$COMPOSE_FILE" "$@"
 }
 
 podman_health_status() {
@@ -229,8 +229,10 @@ parse_up_opts() {
       -d|--detached) DETACH=1; shift ;;
       -a|--attach) DETACH=0; shift ;;
       --no-wait) WAIT=0; shift ;;
-      -f|--file|--timeout|-c|--container|--verbose) # handled globally, skip here
+      -f|--file|-c|--container|--verbose) # handled globally, skip here
         shift; [[ $# -gt 0 && $1 != -* ]] && shift || true; ;;
+      --timeout) # handled globally, takes a value
+        shift 2 ;;
       *) die "Unknown option for 'up': $1" ;;
     esac
   done
@@ -262,7 +264,7 @@ parse_logs_opts() {
     case "$1" in
       -f|--follow) FOLLOW=1; shift ;;
       -n|--tail) TAIL_LINES="${2:-}"; shift 2 ;;
-      -f|--file|-c|--container|--verbose) # compose file handled globally; note: -f already used; no conflict here
+      -f|--file|-c|--container|--verbose) # handled globally, skip here
         shift; [[ $# -gt 0 && $1 != -* ]] && shift || true; ;;
       *) die "Unknown option for 'logs': $1" ;;
     esac
@@ -304,5 +306,6 @@ main() {
 }
 
 trap 'error "An error occurred. See messages above."; exit 1' ERR
+trap 'echo; warn "Interrupted by user."; exit 130' INT TERM
 
 main "$@"

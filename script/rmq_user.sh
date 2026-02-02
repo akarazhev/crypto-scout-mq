@@ -179,7 +179,7 @@ main() {
     local _tags
     _tags=$(echo "$TAGS" | tr ',;' ' ')
     info "Setting tags: $_tags"
-    rmqexec set_user_tags "$RMQ_USER" $_tags
+    rmqexec set_user_tags "$RMQ_USER" "$_tags"
   fi
 
   info "Setting permissions on vhost '$VHOST'..."
