@@ -32,6 +32,18 @@
       },
       "priority": 0,
       "apply-to": "queues"
+    },
+    {
+      "vhost": "/",
+      "name": "dlx-retention",
+      "pattern": "^dlx-queue$",
+      "definition": {
+        "max-length": 10000,
+        "max-age": "7D",
+        "overflow": "reject-publish"
+      },
+      "priority": 0,
+      "apply-to": "queues"
     }
   ],
   "queues": [
@@ -41,10 +53,7 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {
-        "x-max-length-bytes": 2000000000,
-        "x-max-age": "1D",
-        "x-queue-type": "stream",
-        "x-stream-max-segment-size-bytes": 100000000
+        "x-queue-type": "stream"
       }
     },
     {
@@ -53,10 +62,7 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {
-        "x-max-length-bytes": 2000000000,
-        "x-max-age": "1D",
-        "x-queue-type": "stream",
-        "x-stream-max-segment-size-bytes": 100000000
+        "x-queue-type": "stream"
       }
     },
     {
@@ -93,7 +99,6 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {
-        "x-message-ttl": 604800000,
         "x-queue-mode": "lazy"
       }
     }

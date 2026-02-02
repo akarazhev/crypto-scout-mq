@@ -12,15 +12,15 @@ with a pre-provisioned messaging topology.
     - Streams: `bybit-stream`, `crypto-scout-stream` (durable, `x-queue-type: stream`)
     - Queues: `collector-queue`, `chatbot-queue`, `dlx-queue`
     - Bindings: `bybit`, `crypto-scout`, `collector`, `chatbot`, `dlx`
-- Stream retention: `x-max-age=1D`, `x-max-length-bytes=2GB`, `x-stream-max-segment-size-bytes=100MB` (evaluated per
-  segment; operator policies can override queue arguments)
-- Dead-letter exchange (`dlx-exchange`) with `dlx-queue` for failed message handling
+- Stream retention policy (`stream-retention`): max 2GB or 1 day, 100MB segments
+- Dead-letter exchange (`dlx-exchange`) with `dlx-queue` (max 10k messages, 7 day TTL)
+- DLX retention policy (`dlx-retention`): max 10k messages, 7 day TTL, reject-publish overflow
 - Graceful shutdown
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
   `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
 - Collector, chatbot, analyst queues hardened: lazy mode, `reject-publish` overflow, and dead-letter routing
-- Stream retention enforced via policy `stream-retention` for `.*-stream$` queues
+- Retention policies: `stream-retention` for `.*-stream$` queues, `dlx-retention` for `dlx-queue`
 
 ## Repository layout
 
