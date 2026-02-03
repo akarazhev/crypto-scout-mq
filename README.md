@@ -19,7 +19,7 @@ with a pre-provisioned messaging topology.
 - Persistent data volume
 - Security hardening in compose: read-only config mounts (`enabled_plugins`, `rabbitmq.conf`, `definitions.json`),
   `no-new-privileges`, `init`, `pids_limit`, tmpfs for `/tmp`, graceful `SIGTERM`
-- Collector, chatbot, analyst queues hardened: lazy mode, `reject-publish` overflow, and dead-letter routing
+- Collector, chatbot queues hardened: lazy mode, `reject-publish` overflow, and dead-letter routing
 - Retention policies: `stream-retention` for `.*-stream$` queues, `dlx-retention` for `dlx-queue`
 
 ## Repository layout
