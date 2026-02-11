@@ -44,22 +44,57 @@ Web-based administration interface:
 | `dlx-exchange` | direct | Dead letter handling |
 
 ### Streams
-| Stream | Retention | Max Size | Purpose |
-|--------|-----------|----------|---------|
-| `bybit-stream` | 1 day | 2GB | Bybit market data |
-| `crypto-scout-stream` | 1 day | 2GB | CMC/parser data |
+| Stream | Retention | Max Size | Segment Size | Purpose |
+|--------|-----------|----------|--------------|---------|
+| `bybit-stream` | 1 day | 2GB | 100MB | Bybit market data |
+| `crypto-scout-stream` | 1 day | 2GB | 100MB | CMC/parser data |
+
+Stream retention policy (`stream-retention`):
+- Pattern: `.*-stream$`
+- max-length-bytes: 2000000000 (2GB)
+- max-age: 1D
+- stream-max-segment-size-bytes: 100000000 (100MB)
 
 ### Queues
 | Queue | Type | Arguments | Purpose |
 |-------|------|-----------|---------|
-| `collector-queue` | classic | lazy, TTL 6h, max 2500 | Control messages |
-| `chatbot-queue` | classic | lazy, TTL 6h, max 2500 | Notifications |
-| `dlx-queue` | classic | lazy, TTL 7d | Dead letters |
+| `collector-queue` | Classic | lazy, TTL 6h, max 2500, reject-publish, DLX | Control messages |
+| `chatbot-queue` | Classic | lazy, TTL 6h, max 2500, reject-publish, DLX | Notifications |
+| `dlx-queue` | Classic | lazy, max 10k, TTL 7d | Dead letters |
+
+Queue arguments:
+- `collector-queue` / `chatbot-queue`:
+  - x-max-length: 2500
+  - x-message-ttl: 21600000 (6 hours)
+  - x-queue-mode: lazy
+  - x-overflow: reject-publish
+  - x-dead-letter-exchange: dlx-exchange
+  - x-dead-letter-routing-key: dlx
+
+- `dlx-queue`:
+  - x-queue-mode: lazy
+  - max-length: 10000
+  - max-age: 7D
+  - overflow: reject-publish
+
+### Bindings
+| Source | Routing Key | Destination |
+|--------|-------------|-------------|
+| crypto-scout-exchange | bybit | bybit-stream |
+| crypto-scout-exchange | crypto-scout | crypto-scout-stream |
+| crypto-scout-exchange | collector | collector-queue |
+| crypto-scout-exchange | chatbot | chatbot-queue |
+| dlx-exchange | dlx | dlx-queue |
 
 ## Configuration Management
 
 ### definitions.json
-Declarative topology configuration:
+Declarative topology configuration loaded at startup via:
+```ini
+load_definitions = /etc/rabbitmq/definitions.json
+```
+
+Structure:
 ```json
 {
   "vhosts": [{"name": "/"}],
@@ -70,11 +105,6 @@ Declarative topology configuration:
 }
 ```
 
-Loaded at startup via:
-```ini
-load_definitions = /etc/rabbitmq/definitions.json
-```
-
 ### rabbitmq.conf
 Key settings:
 ```ini
@@ -83,6 +113,9 @@ stream.listeners.tcp.1 = 0.0.0.0:5552
 stream.advertised_host = crypto_scout_mq
 stream.advertised_port = 5552
 
+# Definitions
+load_definitions = /etc/rabbitmq/definitions.json
+
 # Resource limits
 disk_free_limit.absolute = 2GB
 vm_memory_high_watermark.relative = 0.6
@@ -90,13 +123,17 @@ vm_memory_high_watermark.relative = 0.6
 # Management
 management.tcp.ip = 0.0.0.0
 management.rates_mode = basic
+
+# Cluster (single node)
+cluster_formation.peer_discovery_backend = classic_config
+cluster_formation.classic_config.nodes.1 = rabbit@crypto_scout_mq
 ```
 
 ### Environment Variables
 ```bash
 RABBITMQ_ERLANG_COOKIE=secret_cookie
-RABBITMQ_NODENAME=rabbit@crypto_scout_mq
 ```
+Stored in `secret/rabbitmq.env` with 600 permissions.
 
 ## CLI Commands
 
@@ -116,7 +153,10 @@ rabbitmqctl start_app
 # List users
 rabbitmqctl list_users
 
-# Add user
+# Add user using helper script
+./script/rmq_user.sh -u username -p 'password' -t administrator
+
+# Add user manually
 rabbitmqctl add_user username 'password'
 rabbitmqctl set_user_tags username administrator
 rabbitmqctl set_permissions -p / username ".*" ".*" ".*"
@@ -132,6 +172,9 @@ rabbitmqctl delete_user username
 ```bash
 # List queues
 rabbitmqctl list_queues name messages consumers
+
+# List queues with memory
+rabbitmqctl list_queues name memory messages
 
 # Purge queue
 rabbitmqctl purge_queue queue_name
@@ -156,6 +199,9 @@ rabbitmqctl list_stream_publishers stream_name
 
 ### Health Checks
 ```bash
+# Using helper script
+./script/rmq_compose.sh status
+
 # Basic health
 rabbitmq-diagnostics -q ping
 
@@ -207,7 +253,9 @@ rabbitmqctl delete_user guest
 ### Secret Management
 ```bash
 # Secure Erlang cookie
-tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 48 > secret/rabbitmq.env
+cd crypto-scout-mq
+COOKIE=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48)
+printf "RABBITMQ_ERLANG_COOKIE=%s\n" "$COOKIE" > secret/rabbitmq.env
 chmod 600 secret/rabbitmq.env
 ```
 
@@ -260,6 +308,14 @@ rabbitmq-diagnostics -q listeners | grep 5552
 # Check stream existence
 rabbitmqctl list_streams
 ```
+
+## Helper Scripts Reference
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `./script/network.sh` | Create network | `./script/network.sh` |
+| `./script/rmq_compose.sh` | Manage service | `./script/rmq_compose.sh up -d` |
+| `./script/rmq_user.sh` | User management | `./script/rmq_user.sh -u admin -p 'pass' -t administrator` |
 
 ## When to Use Me
 

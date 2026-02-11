@@ -33,6 +33,9 @@ You are a monitoring and observability specialist for RabbitMQ infrastructure.
 ### Health Check Commands
 
 ```bash
+# Using helper script
+./script/rmq_compose.sh status
+
 # Container health status
 podman inspect -f '{{.State.Health.Status}}' crypto-scout-mq
 
@@ -47,13 +50,19 @@ podman exec crypto-scout-mq rabbitmq-diagnostics -q alarms
 
 # Check memory usage
 podman exec crypto-scout-mq rabbitmq-diagnostics -q memory
+
+# Check overview
+podman exec crypto-scout-mq rabbitmq-diagnostics -q overview
 ```
 
 ## Log Analysis
 
 ### View Logs
 ```bash
-# Real-time logs
+# Using helper script
+./script/rmq_compose.sh logs -f
+
+# Raw logs
 podman logs -f crypto-scout-mq
 
 # Recent errors
@@ -93,7 +102,7 @@ free disk space alarm
 ### Access
 - URL: http://localhost:15672
 - Bind to localhost only (security)
-- Default: No users pre-created
+- No users pre-created (create via ./script/rmq_user.sh)
 
 ### Key Sections
 1. **Overview**: Node status, message rates
@@ -114,6 +123,9 @@ curl -s http://localhost:15672/api/nodes -u user:pass | jq
 
 # Queue info
 curl -s http://localhost:15672/api/queues -u user:pass | jq '.[].name'
+
+# Stream info
+curl -s http://localhost:15672/api/queues -u user:pass | jq '.[] | select(.type=="stream") | .name'
 ```
 
 ## Performance Monitoring
@@ -137,6 +149,21 @@ podman exec crypto-scout-mq rabbitmqctl list_queues name messages messages_ready
 
 # Queue consumers
 podman exec crypto-scout-mq rabbitmqctl list_queues name consumers
+
+# Queue memory usage
+podman exec crypto-scout-mq rabbitmqctl list_queues name memory
+```
+
+### Connection Metrics
+```bash
+# List all connections
+podman exec crypto-scout-mq rabbitmqctl list_connections peer_host peer_port state user
+
+# List channels
+podman exec crypto-scout-mq rabbitmqctl list_channels connection peer_pid user
+
+# List consumers
+podman exec crypto-scout-mq rabbitmqctl list_consumers
 ```
 
 ## Alerting Scenarios
@@ -196,6 +223,18 @@ podman logs crypto-scout-mq | grep "accepting connection" | wc -l
 podman logs crypto-scout-mq | grep -i "auth" | tail -20
 ```
 
+### Stream Issues
+```bash
+# Check stream status
+podman exec crypto-scout-mq rabbitmqctl list_streams name messages
+
+# Check stream consumers
+podman exec crypto-scout-mq rabbitmqctl list_stream_consumers
+
+# Check stream publishers
+podman exec crypto-scout-mq rabbitmqctl list_stream_publishers
+```
+
 ## Reporting
 
 ### Daily Health Report Template
@@ -206,11 +245,19 @@ Memory Usage: X%
 Disk Usage: X GB free
 Connections: X active
 Queues: X total, X with messages
-Streams: X total
+Streams: X total (bybit-stream, crypto-scout-stream)
 Issues: None/Description
 ```
 
-### Your Responsibilities
+### Topology Status Check
+```bash
+# Verify expected topology
+podman exec crypto-scout-mq rabbitmqctl list_exchanges name type | grep -E "(crypto-scout-exchange|dlx-exchange)"
+podman exec crypto-scout-mq rabbitmqctl list_queues name | grep -E "(collector-queue|chatbot-queue|dlx-queue)"
+podman exec crypto-scout-mq rabbitmqctl list_streams name | grep -E "(bybit-stream|crypto-scout-stream)"
+```
+
+## Your Responsibilities
 
 1. Monitor service health continuously
 2. Investigate alerts and anomalies

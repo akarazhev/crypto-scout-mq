@@ -1,7 +1,6 @@
 ---
 name: networking
 description: Container networking configuration for RabbitMQ with Podman compose
-description: Container networking configuration for RabbitMQ with Podman compose
 license: MIT
 compatibility: opencode
 metadata:
@@ -59,7 +58,10 @@ Provide networking configuration and troubleshooting guidance for RabbitMQ conta
 
 ### External Network Creation
 ```bash
-# Create once for all services
+# Create once for all services using helper script
+./script/network.sh
+
+# Or manually
 podman network create crypto-scout-bridge
 
 # Verify creation
@@ -89,7 +91,7 @@ services:
 ```yaml
 services:
   crypto-scout-mq:
-    hostname: crypto_scout_mq  # Underscores for Erlang
+    hostname: crypto_scout_mq  # Underscores for Erlang compatibility
     container_name: crypto-scout-mq
 ```
 
@@ -130,6 +132,9 @@ podman exec crypto-scout-client nc -zv crypto-scout-mq 5552
 
 # Test DNS resolution
 podman exec crypto-scout-client nslookup crypto-scout-mq
+
+# Ping test
+podman exec crypto-scout-client ping -c 3 crypto-scout-mq
 ```
 
 ### Diagnostics
@@ -150,6 +155,7 @@ podman exec crypto-scout-mq rabbitmq-diagnostics -q listeners
 ```bash
 # Check if RabbitMQ is running
 podman ps | grep crypto-scout-mq
+./script/rmq_compose.sh status
 
 # Check logs for startup errors
 podman logs crypto-scout-mq
@@ -167,8 +173,8 @@ podman exec crypto-scout-client ping crypto-scout-mq
 podman inspect crypto-scout-mq | grep -A 10 "Networks"
 
 # Restart with network
-podman-compose down
-podman-compose up -d
+./script/rmq_compose.sh down
+./script/rmq_compose.sh up -d
 ```
 
 ### Port Conflicts
@@ -184,14 +190,16 @@ ports:
   - "127.0.0.1:15673:15672"
 ```
 
-### Firewall Issues
+### Network Not Found
 ```bash
-# Check firewall rules (host)
-sudo iptables -L | grep 5672
-sudo iptables -L | grep 5552
+# Create network if missing
+./script/network.sh
 
-# Note: Container-to-container traffic uses internal networking
-# and should not be affected by host firewall
+# Or manually
+podman network create crypto-scout-bridge
+
+# Then restart service
+./script/rmq_compose.sh restart
 ```
 
 ## Advanced Configuration
@@ -229,7 +237,7 @@ networks:
 
 ### Network Isolation
 ```bash
-# Verify no host exposure
+# Verify no host exposure for AMQP/Streams
 podman port crypto-scout-mq
 # Should only show: 127.0.0.1:15672 -> 15672
 
@@ -241,6 +249,7 @@ podman inspect crypto-scout-mq | grep -A 20 PortBindings
 - Services should use container names for DNS resolution
 - No hardcoded IP addresses
 - Communication encrypted at application level if needed
+- All services must be on crypto-scout-bridge network
 
 ## Performance Tuning
 
@@ -270,6 +279,15 @@ podman exec crypto-scout-mq rabbitmqctl list_connections | wc -l
 
 # Network interfaces in container
 podman exec crypto-scout-mq ip addr
+```
+
+### Bridge Network Inspection
+```bash
+# Inspect the bridge network
+podman network inspect crypto-scout-bridge
+
+# List containers on network
+podman network inspect crypto-scout-bridge | jq '.[0].containers'
 ```
 
 ## When to Use Me

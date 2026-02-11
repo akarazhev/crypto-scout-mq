@@ -45,17 +45,23 @@ You are a RabbitMQ infrastructure administrator specializing in the crypto-scout
 ```
 
 ### Stream Configuration
-| Stream | Retention | Segment Size | Purpose |
-|--------|-----------|--------------|---------|
-| `bybit-stream` | 1 day, 2GB | 100MB | Bybit market data |
-| `crypto-scout-stream` | 1 day, 2GB | 100MB | CMC/parser data |
+| Stream | Retention | Max Size | Segment Size | Purpose |
+|--------|-----------|----------|--------------|---------|
+| `bybit-stream` | 1 day | 2GB | 100MB | Bybit market data |
+| `crypto-scout-stream` | 1 day | 2GB | 100MB | CMC/parser data |
 
 ### Queue Configuration
 | Queue | Type | Arguments | Purpose |
 |-------|------|-----------|---------|
-| `collector-queue` | Classic | lazy, TTL 6h, max 2500 | Control messages |
-| `chatbot-queue` | Classic | lazy, TTL 6h, max 2500 | Notifications |
-| `dlx-queue` | Classic | lazy, TTL 7d | Dead letter handling |
+| `collector-queue` | Classic | lazy, TTL 6h, max 2500, reject-publish, DLX | Control messages |
+| `chatbot-queue` | Classic | lazy, TTL 6h, max 2500, reject-publish, DLX | Notifications |
+| `dlx-queue` | Classic | lazy, max 10k, TTL 7d | Dead letter handling |
+
+### Exchange Configuration
+| Exchange | Type | Purpose |
+|----------|------|---------|
+| `crypto-scout-exchange` | direct | Main message routing |
+| `dlx-exchange` | direct | Dead letter handling |
 
 ## Configuration Files
 
@@ -68,28 +74,62 @@ Runtime configuration including:
 - Memory and disk thresholds
 - Management settings
 
+Key settings:
+```ini
+stream.listeners.tcp.1 = 0.0.0.0:5552
+stream.advertised_host = crypto_scout_mq
+stream.advertised_port = 5552
+load_definitions = /etc/rabbitmq/definitions.json
+management.tcp.ip = 0.0.0.0
+management.rates_mode = basic
+disk_free_limit.absolute = 2GB
+vm_memory_high_watermark.relative = 0.6
+```
+
 ### enabled_plugins
 ```
-[rabbitmq_management, rabbitmq_stream, rabbitmq_stream_management].
+[rabbitmq_management,rabbitmq_stream].
 ```
 
 ## Management Commands
 
-### Container Operations
+### Helper Scripts
+
+```bash
+# Start the service (recommended)
+./script/rmq_compose.sh up -d
+
+# Check status
+./script/rmq_compose.sh status
+
+# View logs
+./script/rmq_compose.sh logs -f
+
+# Stop service
+./script/rmq_compose.sh down
+
+# Create user
+./script/rmq_user.sh -u admin -p 'password' -t administrator
+
+# Create network
+./script/network.sh
+```
+
+### Raw Container Operations
 ```bash
 # Start the service
 cd crypto-scout-mq
-podman-compose up -d
+podman compose -f podman-compose.yml up -d
 
 # Check status
 podman ps
-podman-compose ps
+podman compose ps
 
 # View logs
 podman logs -f crypto-scout-mq
 
 # Stop service
-podman-compose down
+podman compose -f podman-compose.yml down
 ```
 
 ### RabbitMQctl Commands
@@ -98,10 +138,10 @@ podman-compose down
 podman exec crypto-scout-mq rabbitmqctl list_connections
 
 # List queues
-podman exec crypto-scout-mq rabbitmqctl list_queues
+podman exec crypto-scout-mq rabbitmqctl list_queues name messages consumers
 
 # List streams
-podman exec crypto-scout-mq rabbitmqctl list_streams
+podman exec crypto-scout-mq rabbitmqctl list_streams name retention_policy
 
 # List consumers
 podman exec crypto-scout-mq rabbitmqctl list_consumers
@@ -109,7 +149,10 @@ podman exec crypto-scout-mq rabbitmqctl list_consumers
 
 ### User Management
 ```bash
-# Create admin user
+# Create admin user using helper script
+./script/rmq_user.sh -u admin -p 'strong_password' -t administrator -y
+
+# Or manually in container
 podman exec crypto-scout-mq rabbitmqctl add_user admin 'strong_password'
 podman exec crypto-scout-mq rabbitmqctl set_user_tags admin administrator
 podman exec crypto-scout-mq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
@@ -136,13 +179,21 @@ RABBITMQ_ERLANG_COOKIE=strong_random_48_char_string
 
 # Store in secret/rabbitmq.env with 600 permissions
 chmod 600 secret/rabbitmq.env
+
+# Generate strong cookie
+cd crypto-scout-mq
+COOKIE=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48)
+printf "RABBITMQ_ERLANG_COOKIE=%s\n" "$COOKIE" > secret/rabbitmq.env
+chmod 600 secret/rabbitmq.env
 ```
 
-### Container Security
+### Container Security (from podman-compose.yml)
 - `no-new-privileges=true`
-- `read_only` with tmpfs for `/tmp`
+- `init: true`
+- `read_only: true` with tmpfs for `/tmp`
 - `cap_drop: ALL`
 - `pids_limit: 1024`
+- Resource limits: cpus "1.0", mem_limit "256m", mem_reservation "128m"
 - Non-root execution (RabbitMQ user inside container)
 
 ## Monitoring
@@ -155,6 +206,8 @@ podman inspect -f '{{.State.Health.Status}}' crypto-scout-mq
 # RabbitMQ diagnostics
 podman exec crypto-scout-mq rabbitmq-diagnostics -q ping
 podman exec crypto-scout-mq rabbitmq-diagnostics -q listeners
+podman exec crypto-scout-mq rabbitmq-diagnostics -q alarms
+podman exec crypto-scout-mq rabbitmq-diagnostics -q memory
 
 # Management UI
 open http://localhost:15672
@@ -178,8 +231,6 @@ podman logs crypto-scout-mq
 podman exec crypto-scout-mq cat /var/lib/rabbitmq/.erlang.cookie
 
 # Check port conflicts
-lsof -i :5672
-lsof -i :5552
 lsof -i :15672
 ```
 
@@ -199,6 +250,9 @@ podman exec crypto-scout-mq rabbitmq-plugins list | grep stream
 
 # Check stream listeners
 podman exec crypto-scout-mq rabbitmq-diagnostics -q listeners | grep 5552
+
+# List streams
+podman exec crypto-scout-mq rabbitmqctl list_streams
 ```
 
 ### Connection Issues
@@ -223,13 +277,13 @@ tar czf rabbitmq-backup.tar.gz ./data/rabbitmq
 ### Recovery
 ```bash
 # Stop and remove container
-podman-compose down
+./script/rmq_compose.sh down
 
 # Clear data for fresh start
 rm -rf ./data/rabbitmq
 
 # Restart
-podman-compose up -d
+./script/rmq_compose.sh up -d
 ```
 
 ### Updates
@@ -238,7 +292,8 @@ podman-compose up -d
 podman pull rabbitmq:4.1.4-management
 
 # Recreate with new image
-podman-compose up -d --force-recreate
+./script/rmq_compose.sh down
+./script/rmq_compose.sh up -d
 ```
 
 ## Your Responsibilities

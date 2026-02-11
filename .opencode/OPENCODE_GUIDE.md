@@ -99,6 +99,38 @@ Applications can't connect to RabbitMQ. Help me troubleshoot.
 | 5552 | Streams | Container only | Stream messaging |
 | 15672 | HTTP | Localhost only | Management UI |
 
+## Topology Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    crypto-scout-exchange                         │
+│                        (direct type)                             │
+└──────────────┬──────────────────────────────┬───────────────────┘
+               │                              │
+      ┌────────┴────────┐            ┌────────┴────────┐
+      │   bybit-stream  │            │crypto-scout-stream
+      │    (Stream)     │            │    (Stream)     │
+      └─────────────────┘            └─────────────────┘
+               │                              │
+      ┌────────┴────────┐            ┌────────┴────────┐
+      │  collector-queue│            │  chatbot-queue  │
+      │    (Classic)    │            │    (Classic)    │
+      └─────────────────┘            └─────────────────┘
+```
+
+### Streams
+- `bybit-stream` - Bybit market data (2GB/1day retention, 100MB segments)
+- `crypto-scout-stream` - CMC and other data (2GB/1day retention, 100MB segments)
+
+### Queues
+- `collector-queue` - Collector service queue (lazy, TTL 6h, max 2500)
+- `chatbot-queue` - Chatbot service queue (lazy, TTL 6h, max 2500)
+- `dlx-queue` - Dead letter queue (lazy, max 10k, TTL 7d)
+
+### Exchanges
+- `crypto-scout-exchange` (direct) - Main exchange
+- `dlx-exchange` (direct) - Dead letter exchange
+
 ## Security Checklist
 
 - [ ] Erlang cookie in `secret/rabbitmq.env` (600 permissions)
@@ -113,15 +145,15 @@ Applications can't connect to RabbitMQ. Help me troubleshoot.
 
 ```bash
 # Start/stop
-podman-compose up -d
-podman-compose down
+./script/rmq_compose.sh up -d
+./script/rmq_compose.sh down
 
 # Check status
+./script/rmq_compose.sh status
 podman ps
-podman-compose ps
 
 # View logs
-podman logs -f crypto-scout-mq
+./script/rmq_compose.sh logs -f
 
 # Health check
 podman exec crypto-scout-mq rabbitmq-diagnostics -q ping
@@ -130,9 +162,17 @@ podman exec crypto-scout-mq rabbitmq-diagnostics -q ping
 open http://localhost:15672
 ```
 
+## Helper Scripts
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `script/network.sh` | Create Podman network | `./script/network.sh` |
+| `script/rmq_compose.sh` | Manage service lifecycle | `./script/rmq_compose.sh up -d` |
+| `script/rmq_user.sh` | Create/manage users | `./script/rmq_user.sh -u admin -p 'pass' -t administrator` |
+
 ## Resources
 
 - **RabbitMQ Version**: 4.1.4
-- **Plugins**: management, stream, stream_management
+- **Plugins**: rabbitmq_management, rabbitmq_stream
 - **Network**: crypto-scout-bridge
 - **Documentation**: https://www.rabbitmq.com/documentation.html
