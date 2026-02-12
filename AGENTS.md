@@ -6,6 +6,46 @@ This document provides guidelines for agentic coding contributors to the crypto-
 
 **crypto-scout-mq** is a RabbitMQ 4.1.4 infrastructure module for the crypto-scout ecosystem, providing AMQP and Streams messaging capabilities. Deployed via Podman Compose with pre-provisioned topology, security hardening, and production-ready configuration.
 
+## MCP Server Configuration
+
+This module uses the **Context7 MCP server** for enhanced code intelligence and documentation retrieval.
+
+### Available MCP Tools
+
+When working with this codebase, you can use the following MCP tools via the context7 server:
+
+- **resolve-library-id**: Resolve a library name to its Context7 library ID
+- **get-library-docs**: Retrieve up-to-date documentation for a library by its ID
+
+### Configuration
+
+The MCP server is configured in `.opencode/package.json`:
+
+```json
+{
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-4cec80b8-d947-4ff4-a29a-d00bea5a2fac"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+### Usage Guidelines
+
+1. **RabbitMQ Configuration**: Use `resolve-library-id` for "rabbitmq" to get the latest configuration options, stream parameters, and AMQP protocol details.
+
+2. **Podman Compose**: Retrieve container orchestration best practices and networking configuration guidance.
+
+3. **Security Hardening**: Access RabbitMQ security documentation for user management, TLS configuration, and access control patterns.
+
+4. **Stream Topology**: Get documentation on stream definitions, retention policies, and consumer group management.
+
 ## Repository Layout
 
 ```
